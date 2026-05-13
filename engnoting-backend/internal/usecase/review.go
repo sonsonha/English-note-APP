@@ -77,6 +77,9 @@ func (uc *ReviewUseCase) SubmitReview(ctx context.Context, input SubmitReviewInp
 	if err := uc.statsRepo.RecalculateDailyAccuracyRate(ctx, input.UserID, today); err != nil {
 		log.Printf("[WARN] SubmitReview: failed to recalculate daily accuracy rate: %v", err)
 	}
+	if err := uc.statsRepo.RecalculateDailyStatus(ctx, input.UserID, today); err != nil {
+		log.Printf("[WARN] SubmitReview: failed to recalculate daily status: %v", err)
+	}
 
 	stats, err := uc.reviewRepo.GetStats(ctx, input.WordID)
 	if err == nil &&

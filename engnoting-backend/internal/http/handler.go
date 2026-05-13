@@ -43,6 +43,7 @@ type SessionUseCaser interface {
 type CalendarStatsUseCaser interface {
 	GetCalendarStats(ctx context.Context, input usecase.GetCalendarStatsInput) (*usecase.CalendarStatsOutput, error)
 	GetCalendarSummaryStats(ctx context.Context, input usecase.CalendarSummaryStatsInput) (*usecase.CalendarSummaryStatsOutput, error)
+	BackfillDailyStats(ctx context.Context, input usecase.BackfillDailyStatsInput) error
 }
 
 // WordQuizUseCaser defines the quiz operations needed by the HTTP layer.

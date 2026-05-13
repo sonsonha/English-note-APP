@@ -29,6 +29,8 @@ type VocabDailyStatsRepository interface {
 	IncrementAddedWordsCount(ctx context.Context, userID string, date time.Time) error
 	IncrementReviewedWordsCount(ctx context.Context, userID string, date time.Time) error
 	RecalculateDailyAccuracyRate(ctx context.Context, userID string, date time.Time) error
+	BackfillDailyStats(ctx context.Context, userID string) error
+	RecalculateDailyStatus(ctx context.Context, userID string, date time.Time) error
 }
 
 func CalculateCalendarStatus(added, reviewed, correct int) CalendarStatus {

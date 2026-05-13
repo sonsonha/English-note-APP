@@ -109,6 +109,86 @@ func (r *VocabDailyStatsRepository) IncrementReviewedWordsCount(ctx context.Cont
 	return err
 }
 
+func (r *VocabDailyStatsRepository) BackfillDailyStats(ctx context.Context, userID string) error {
+	// Rebuild added_words_count from words table
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO vocab_daily_stats (user_id, stat_date, added_words_count, updated_at)
+		SELECT user_id, DATE(created_at) AS stat_date, COUNT(*) AS added_words_count, now()
+		FROM words
+		WHERE user_id = $1
+		GROUP BY user_id, DATE(created_at)
+		ON CONFLICT (user_id, stat_date) DO UPDATE
+		SET added_words_count = EXCLUDED.added_words_count, updated_at = now()
+	`, userID)
+	if err != nil {
+		return err
+	}
+
+	// Rebuild reviewed_words_count from reviews table
+	_, err = r.db.ExecContext(ctx, `
+		INSERT INTO vocab_daily_stats (user_id, stat_date, reviewed_words_count, updated_at)
+		SELECT user_id, DATE(reviewed_at) AS stat_date, COUNT(*) AS reviewed_words_count, now()
+		FROM reviews
+		WHERE user_id = $1
+		GROUP BY user_id, DATE(reviewed_at)
+		ON CONFLICT (user_id, stat_date) DO UPDATE
+		SET reviewed_words_count = EXCLUDED.reviewed_words_count, updated_at = now()
+	`, userID)
+	if err != nil {
+		return err
+	}
+
+	// Recalculate accuracy_rate for all days
+	_, err = r.db.ExecContext(ctx, `
+		UPDATE vocab_daily_stats
+		SET accuracy_rate = (
+			SELECT COALESCE(AVG(rs.accuracy_rate), 0)
+			FROM (
+				SELECT DISTINCT word_id
+				FROM reviews
+				WHERE user_id = $1 AND DATE(reviewed_at) = vocab_daily_stats.stat_date
+			) daily
+			JOIN review_stats rs ON rs.word_id = daily.word_id
+			WHERE rs.total_reviews > 0
+		),
+		updated_at = now()
+		WHERE user_id = $1
+	`, userID)
+	if err != nil {
+		return err
+	}
+
+	// Recalculate status from counts
+	_, err = r.db.ExecContext(ctx, `
+		UPDATE vocab_daily_stats
+		SET status = CASE
+			WHEN added_words_count = 0 THEN 'fallow'
+			WHEN reviewed_words_count = 0 THEN 'tending'
+			WHEN accuracy_rate >= 0.8 THEN 'mastered'
+			WHEN accuracy_rate >= 0.6 THEN 'steady'
+			ELSE 'tending'
+		END
+		WHERE user_id = $1
+	`, userID)
+	return err
+}
+
+func (r *VocabDailyStatsRepository) RecalculateDailyStatus(ctx context.Context, userID string, date time.Time) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE vocab_daily_stats
+		SET status = CASE
+			WHEN added_words_count = 0 THEN 'fallow'
+			WHEN reviewed_words_count = 0 THEN 'tending'
+			WHEN accuracy_rate >= 0.8 THEN 'mastered'
+			WHEN accuracy_rate >= 0.6 THEN 'steady'
+			ELSE 'tending'
+		END,
+		updated_at = now()
+		WHERE user_id = $1 AND stat_date = $2
+	`, userID, date)
+	return err
+}
+
 func (r *VocabDailyStatsRepository) RecalculateDailyAccuracyRate(ctx context.Context, userID string, date time.Time) error {
 	_, err := r.db.ExecContext(ctx, `
 		UPDATE vocab_daily_stats

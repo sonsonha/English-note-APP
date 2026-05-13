@@ -43,6 +43,17 @@ func (h *Handler) GetDailyStats(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, output)
 }
 
+func (h *Handler) BackfillDailyStats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := mustUserIDFromContext(ctx)
+
+	if err := h.calendarStatsUseCase.BackfillDailyStats(ctx, usecase.BackfillDailyStatsInput{UserID: userID}); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to backfill daily stats")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
 func (h *Handler) GetCalendarSummaryStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := mustUserIDFromContext(ctx)

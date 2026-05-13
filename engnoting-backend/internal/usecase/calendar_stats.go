@@ -48,6 +48,14 @@ func (uc *CalendarStatsUseCase) GetCalendarStats(ctx context.Context, input GetC
 	return &CalendarStatsOutput{Stats: stats}, nil
 }
 
+type BackfillDailyStatsInput struct {
+	UserID string
+}
+
+func (uc *CalendarStatsUseCase) BackfillDailyStats(ctx context.Context, input BackfillDailyStatsInput) error {
+	return uc.vocabDailyStatsRepo.BackfillDailyStats(ctx, input.UserID)
+}
+
 func (uc *CalendarStatsUseCase) GetCalendarSummaryStats(ctx context.Context, input CalendarSummaryStatsInput) (*CalendarSummaryStatsOutput, error) {
 	stats, err := uc.vocabDailyStatsRepo.GetStats(ctx, input.UserID, input.From, input.To)
 	if err != nil {

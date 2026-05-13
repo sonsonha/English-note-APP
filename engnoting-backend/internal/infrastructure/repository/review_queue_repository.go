@@ -32,11 +32,14 @@ func (r *ReviewQueueRepository) Rebuild(ctx context.Context, userID string, item
 		return err
 	}
 
-	// Insert new queue items
+	// Insert new queue items — upsert so concurrent rebuilds don't conflict
 	for _, item := range items {
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO review_queue (user_id, word_id, priority_score, reason)
 			VALUES ($1, $2, $3, $4)
+			ON CONFLICT (user_id, word_id) DO UPDATE
+			  SET priority_score = EXCLUDED.priority_score,
+			      reason         = EXCLUDED.reason
 		`, item.UserID, item.WordID, item.PriorityScore, item.Reason)
 		if err != nil {
 			return err

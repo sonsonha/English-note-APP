@@ -112,6 +112,10 @@ func (m *mockCalendarStatsUseCase) GetCalendarSummaryStats(ctx context.Context, 
 	return &usecase.CalendarSummaryStatsOutput{}, nil
 }
 
+func (m *mockCalendarStatsUseCase) BackfillDailyStats(ctx context.Context, input usecase.BackfillDailyStatsInput) error {
+	return nil
+}
+
 // seedSession adds a session directly into handler's sessionStore for testing.
 func seedSession(h *Handler, sessionID string, sess *domain.Session, expiresAt time.Time) {
 	h.sessionMu.Lock()

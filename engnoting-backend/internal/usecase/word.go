@@ -78,6 +78,9 @@ func (uc *WordUseCase) CreateWord(ctx context.Context, input CreateWordInput) (*
 	if err := uc.statsRepo.IncrementAddedWordsCount(ctx, input.UserID, now); err != nil {
 		log.Printf("[WARN] CreateWord: failed to increment added words count for user %q: %v", input.UserID, err)
 	}
+	if err := uc.statsRepo.RecalculateDailyStatus(ctx, input.UserID, now); err != nil {
+		log.Printf("[WARN] CreateWord: failed to recalculate daily status: %v", err)
+	}
 
 	go uc.generateAIExplanation(wordID, text, ctxTrimmed)
 	go uc.generateInitialQuizzes(wordID, text, ctxTrimmed)

@@ -39,6 +39,7 @@ func NewRouter(handler *Handler, jwtService *auth.JwtService) http.Handler {
 
 		r.Get("/words/calendar-stats", handler.GetDailyStats)
 		r.Get("/words/calendar-summary", handler.GetCalendarSummaryStats)
+		r.Post("/stats/backfill", handler.BackfillDailyStats)
 
 		// Review endpoints
 		r.Post("/reviews/session", handler.StartSession)

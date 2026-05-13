@@ -127,6 +127,10 @@ func (m *mockStatsRepo) IncrementReviewedWordsCount(ctx context.Context, userID 
 func (m *mockStatsRepo) RecalculateDailyAccuracyRate(ctx context.Context, userID string, date time.Time) error {
 	return nil
 }
+func (m *mockStatsRepo) BackfillDailyStats(ctx context.Context, userID string) error { return nil }
+func (m *mockStatsRepo) RecalculateDailyStatus(ctx context.Context, userID string, date time.Time) error {
+	return nil
+}
 
 func TestWordUseCase_CreateWord(t *testing.T) {
 	ctx := context.Background()
