@@ -31,6 +31,10 @@
   --rose-soft:     oklch(0.95 0.045 25);
   --leaf:          oklch(0.62 0.110 150);
 
+  --forest:        oklch(0.48 0.130 148);
+  --forest-deep:   oklch(0.35 0.120 148);
+  --forest-soft:   oklch(0.88 0.075 152);
+
   --gold:        var(--butter);
   --gold-deep:   var(--butter-deep);
 

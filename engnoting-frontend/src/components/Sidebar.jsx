@@ -29,14 +29,13 @@ export default function Sidebar({ screen, setScreen, wordCount }) {
 
       <div className="nav-section">
         <div className="nav-label">Today</div>
-        <NavItem id="dashboard" screen={screen} setScreen={setScreen} icon="cards" label="Dashboard" />
-        <NavItem id="review"    screen={screen} setScreen={setScreen} icon="play"  label="Review session" />
+        <NavItem id="calendar" screen={screen} setScreen={setScreen} icon="calendar" label="Dashboard" />
+        <NavItem id="review"   screen={screen} setScreen={setScreen} icon="play"     label="Review session" />
       </div>
 
       <div className="nav-section">
         <div className="nav-label">Explore</div>
-        <NavItem id="library"  screen={screen} setScreen={setScreen} icon="book"     label="Words" badge={wordCount || undefined} />
-        <NavItem id="calendar" screen={screen} setScreen={setScreen} icon="calendar" label="Calendar" />
+        <NavItem id="library" screen={screen} setScreen={setScreen} icon="book" label="My Library" badge={wordCount || undefined} />
       </div>
 
       <div className="nav-section">

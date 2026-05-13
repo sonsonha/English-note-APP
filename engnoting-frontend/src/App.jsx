@@ -3,7 +3,6 @@ import { useAuth } from './context/AuthContext.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import CaptureFAB from './components/CaptureFAB.jsx';
 import Auth from './screens/Auth.jsx';
-import Dashboard from './screens/Dashboard.jsx';
 import Library from './screens/Library.jsx';
 import WordDetail from './screens/WordDetail.jsx';
 import Review from './screens/Review.jsx';
@@ -13,15 +12,18 @@ import Settings from './screens/Settings.jsx';
 
 export default function App() {
   const { user, loading } = useAuth();
-  const [screen, setScreen] = useState('dashboard');
+  const [screen, setScreen] = useState('calendar');
   const [activeWordId, setActiveWordId] = useState(null);
   const [sessionResults, setSessionResults] = useState([]);
   const [libraryScope, setLibraryScope] = useState(null);
-  const [wordCount, setWordCount] = useState(0);
+  const [wordCount] = useState(0);
+  const [reviewConfig, setReviewConfig] = useState(null);
 
   const openWord = (id) => { setActiveWordId(id); setScreen('word'); };
   const finishSession = (results) => { setSessionResults(results); setScreen('results'); };
   const goToLibrary = (scope) => { setLibraryScope(scope || null); setScreen('library'); };
+  // goToReview({ from?, to?, limit?, label? }) — with scope shows config step first
+  const goToReview = (config) => { setReviewConfig(config || null); setScreen('review'); };
 
   if (loading) {
     return (
@@ -37,11 +39,11 @@ export default function App() {
   switch (screen) {
     case 'dashboard':
       content = (
-        <Dashboard
+        <Calendar
           setScreen={setScreen}
           openWord={openWord}
           goToLibrary={goToLibrary}
-          onWordCount={setWordCount}
+          goToReview={goToReview}
         />
       );
       break;
@@ -69,6 +71,7 @@ export default function App() {
           setScreen={setScreen}
           openWord={openWord}
           finishSession={finishSession}
+          reviewConfig={reviewConfig}
         />
       );
       break;
@@ -87,6 +90,7 @@ export default function App() {
           setScreen={setScreen}
           openWord={openWord}
           goToLibrary={goToLibrary}
+          goToReview={goToReview}
         />
       );
       break;
@@ -95,11 +99,11 @@ export default function App() {
       break;
     default:
       content = (
-        <Dashboard
+        <Calendar
           setScreen={setScreen}
           openWord={openWord}
           goToLibrary={goToLibrary}
-          onWordCount={setWordCount}
+          goToReview={goToReview}
         />
       );
   }

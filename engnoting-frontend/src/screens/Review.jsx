@@ -181,20 +181,66 @@ function FillBlank({ item, onAnswer }) {
   );
 }
 
+// ── Pre-session config ────────────────────────────────────────────────────────
+function ReviewConfig({ config, onStart, onCancel }) {
+  const [limit, setLimit] = useState(config?.limit || 10);
+  return (
+    <div className="canvas fade-in" style={{ maxWidth: 520 }}>
+      <div className="card" style={{ padding: 32 }}>
+        <div className="kicker">Review session</div>
+        <h2 style={{ marginTop: 8, fontFamily: 'var(--display)', fontWeight: 800 }}>
+          {config?.label || 'Custom review'}
+        </h2>
+        {(config?.from || config?.to) && (
+          <div className="meta" style={{ marginTop: 4, fontSize: 13 }}>
+            {config.from === config.to ? config.from : `${config.from} → ${config.to}`}
+          </div>
+        )}
+
+        <div style={{ marginTop: 28 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <label style={{ fontSize: 13, fontWeight: 600 }}>Words per session</label>
+            <span style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 20 }}>{limit}</span>
+          </div>
+          <input
+            type="range" min={1} max={50} value={limit}
+            onChange={(e) => setLimit(Number(e.target.value))}
+            style={{ width: '100%', accentColor: 'var(--accent)' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-mute)', marginTop: 4 }}>
+            <span>1</span><span>50</span>
+          </div>
+        </div>
+
+        <div className="row" style={{ gap: 12, marginTop: 32 }}>
+          <button className="btn" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-primary" onClick={() => onStart(limit)}>
+            <Icon name="play" size={14} /> Start {limit} word{limit !== 1 ? 's' : ''}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Review screen ────────────────────────────────────────────────────────
-export default function Review({ setScreen, openWord, finishSession }) {
+export default function Review({ setScreen, openWord, finishSession, reviewConfig }) {
   const [sessionId, setSessionId] = useState(null);
   const [items, setItems] = useState([]);
   const [idx, setIdx] = useState(0);
   const [results, setResults] = useState([]);
   const [animOut, setAnimOut] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  // showConfig: true when reviewConfig is present and session not yet started
+  const [showConfig, setShowConfig] = useState(!!reviewConfig);
 
-  useEffect(() => {
+  const launch = (limit) => {
+    setShowConfig(false);
     setLoading(true);
-    startSession()
+    const opts = reviewConfig ? { ...reviewConfig, limit } : { limit };
+    startSession(opts)
       .then((data) => {
         setSessionId(data.session_id);
         setItems(data.items || []);
@@ -202,6 +248,21 @@ export default function Review({ setScreen, openWord, finishSession }) {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!reviewConfig) {
+      // Default session: start immediately with no filter
+      setLoading(true);
+      startSession()
+        .then((data) => {
+          setSessionId(data.session_id);
+          setItems(data.items || []);
+          if (!data.items || data.items.length === 0) setDone(true);
+        })
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false));
+    }
   }, []);
 
   const currentItem = items[idx];
@@ -254,6 +315,16 @@ export default function Review({ setScreen, openWord, finishSession }) {
       setIdx((i) => i + 1);
     }
   };
+
+  if (showConfig) {
+    return (
+      <ReviewConfig
+        config={reviewConfig}
+        onStart={launch}
+        onCancel={() => setScreen('calendar')}
+      />
+    );
+  }
 
   if (loading) {
     return (
