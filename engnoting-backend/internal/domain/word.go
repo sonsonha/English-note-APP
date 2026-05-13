@@ -26,7 +26,14 @@ type WordAIData struct {
 	PartOfSpeech *string
 	CEFRLevel    *string
 	VIMeaning    *string
+	Topic        *string
 	GeneratedAt  time.Time
+}
+
+// TopicSummary represents a topic with its word count.
+type TopicSummary struct {
+	Topic     string
+	WordCount int
 }
 
 // WordStats represents statistics used for review prioritization.
@@ -47,11 +54,13 @@ type WordRepository interface {
 	Update(ctx context.Context, word *Word) error
 	GetByID(ctx context.Context, wordID, userID string) (*Word, error)
 	List(ctx context.Context, userID string, limit, offset int) ([]*Word, error)
+	ListByTopic(ctx context.Context, userID, topic string, limit, offset int) ([]*Word, error)
 	Count(ctx context.Context, userID string) (int, error)
 	StoreAIData(ctx context.Context, wordID string, aiData *WordAIData) error
 	UpdateVIMeaning(ctx context.Context, wordID, viMeaning string) error
 	ListMissingVIMeaning(ctx context.Context, limit int) ([]*Word, error)
 	ListMissingQuizzes(ctx context.Context, limit int) ([]*Word, error)
+	GetTopics(ctx context.Context, userID string) ([]TopicSummary, error)
 }
 
 // WordStatsRepository defines persistence operations for word stats.

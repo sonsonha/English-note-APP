@@ -39,6 +39,7 @@ type StartSessionInput struct {
 	Limit  int        // 0 = default (10)
 	From   *time.Time // nil = all words
 	To     *time.Time // nil = all words
+	Topic  string     // "" = all topics
 }
 
 // StartSessionOutput represents output from starting a session
@@ -105,22 +106,21 @@ func (uc *SessionUseCase) buildSession(ctx context.Context, input StartSessionIn
 	var queueItems []domain.ReviewQueueItem
 	var err error
 
-	if input.From != nil && input.To != nil {
-		// Date-filtered session: fetch only words added in the given range, up to limit.
+	switch {
+	case input.Topic != "":
+		queueItems, err = uc.queueRepo.GetQueueItemsByTopic(ctx, input.UserID, input.Topic)
+	case input.From != nil && input.To != nil:
 		queueItems, err = uc.queueRepo.GetQueueItemsInRange(ctx, input.UserID, *input.From, *input.To, limit)
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	default:
 		queueItems, err = uc.queueRepo.GetQueueItems(ctx, input.UserID)
-		if err != nil {
-			return nil, err
-		}
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	// For date-filtered sessions take top N straight; for default sessions split critical/normal.
+	// Topic and date-filtered sessions take top N straight; default sessions split critical/normal.
 	var items []domain.SessionItem
-	if input.From != nil && input.To != nil {
+	if input.Topic != "" || (input.From != nil && input.To != nil) {
 		items = uc.pickItems(ctx, input.UserID, queueItems, limit)
 	} else {
 		maxCritical := (limit + 1) / 2

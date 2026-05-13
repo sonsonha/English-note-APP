@@ -51,6 +51,12 @@ type WordQuizUseCaser interface {
 	GetQuizzesByWordID(ctx context.Context, input usecase.GetQuizzesInput) (*usecase.GetQuizzesOutput, error)
 }
 
+// TopicUseCaser defines the topic operations needed by the HTTP layer.
+type TopicUseCaser interface {
+	GetTopics(ctx context.Context, input usecase.GetTopicsInput) (*usecase.GetTopicsOutput, error)
+	GetTopicWords(ctx context.Context, input usecase.GetTopicWordsInput) (*usecase.GetTopicWordsOutput, error)
+}
+
 // Logger interface for logging.
 type Logger interface {
 	Warn(msg string, fields ...any)
@@ -87,6 +93,7 @@ type Handler struct {
 	sessionUseCase       SessionUseCaser
 	calendarStatsUseCase CalendarStatsUseCaser
 	wordQuizUseCase      WordQuizUseCaser
+	topicUseCase         TopicUseCaser
 	logger               Logger
 
 	sessionStore map[string]sessionEntry
@@ -101,6 +108,7 @@ func NewHandler(
 	authUseCase AuthUseCaser,
 	calendarStatsUseCase CalendarStatsUseCaser,
 	wordQuizUseCase WordQuizUseCaser,
+	topicUseCase TopicUseCaser,
 ) *Handler {
 	return &Handler{
 		wordUseCase:          wordUseCase,
@@ -109,6 +117,7 @@ func NewHandler(
 		authUseCase:          authUseCase,
 		calendarStatsUseCase: calendarStatsUseCase,
 		wordQuizUseCase:      wordQuizUseCase,
+		topicUseCase:         topicUseCase,
 		logger:               &stdLogger{},
 		sessionStore:         make(map[string]sessionEntry),
 	}

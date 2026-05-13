@@ -72,6 +72,14 @@ func (m *mockWordRepo) ListMissingQuizzes(_ context.Context, _ int) ([]*domain.W
 	return nil, nil
 }
 
+func (m *mockWordRepo) ListByTopic(_ context.Context, _, _ string, _, _ int) ([]*domain.Word, error) {
+	return nil, nil
+}
+
+func (m *mockWordRepo) GetTopics(_ context.Context, _ string) ([]domain.TopicSummary, error) {
+	return nil, nil
+}
+
 // mockAIService implements domain.AIService.
 type mockAIService struct {
 	explainWordFn func(word, ctx string) (*domain.AIExplanation, error)

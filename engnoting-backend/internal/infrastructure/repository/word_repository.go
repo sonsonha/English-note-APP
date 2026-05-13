@@ -77,7 +77,7 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 	var createdAt, updatedAt sql.NullTime
 
 	var aiDefinition, aiExampleGood sql.NullString
-	var aiPOS, aiCEFR, aiVIMeaning sql.NullString
+	var aiPOS, aiCEFR, aiVIMeaning, aiTopic sql.NullString
 
 	err := r.db.QueryRowContext(ctx, `
 		SELECT
@@ -93,7 +93,8 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 			ai.example_good,
 			ai.pos,
 			ai.cefr_level,
-			ai.vi_meaning
+			ai.vi_meaning,
+			ai.topic
 		FROM words w
 		LEFT JOIN word_ai_data ai ON ai.word_id = w.id
 		WHERE w.id = $1 AND w.user_id = $2
@@ -111,6 +112,7 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 		&aiPOS,
 		&aiCEFR,
 		&aiVIMeaning,
+		&aiTopic,
 	)
 
 	if err == sql.ErrNoRows {
@@ -144,6 +146,9 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 		if aiVIMeaning.Valid {
 			word.AIData.VIMeaning = &aiVIMeaning.String
 		}
+		if aiTopic.Valid {
+			word.AIData.Topic = &aiTopic.String
+		}
 	}
 
 	return &word, nil
@@ -165,7 +170,8 @@ func (r *WordRepository) List(ctx context.Context, userID string, limit, offset 
 			ai.example_good,
 			ai.pos,
 			ai.cefr_level,
-			ai.vi_meaning
+			ai.vi_meaning,
+			ai.topic
 		FROM words w
 		LEFT JOIN word_ai_data ai ON ai.word_id = w.id
 		WHERE w.user_id = $1
@@ -177,12 +183,74 @@ func (r *WordRepository) List(ctx context.Context, userID string, limit, offset 
 	}
 	defer rows.Close()
 
+	return scanWords(rows)
+}
+
+// ListByTopic retrieves words for a user filtered by topic
+func (r *WordRepository) ListByTopic(ctx context.Context, userID, topic string, limit, offset int) ([]*domain.Word, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT
+			w.id,
+			w.user_id,
+			w.text,
+			w.context,
+			w.source,
+			w.confidence,
+			w.created_at,
+			w.updated_at,
+			ai.definition,
+			ai.example_good,
+			ai.pos,
+			ai.cefr_level,
+			ai.vi_meaning,
+			ai.topic
+		FROM words w
+		LEFT JOIN word_ai_data ai ON ai.word_id = w.id
+		WHERE w.user_id = $1 AND ai.topic = $2
+		ORDER BY w.created_at DESC
+		LIMIT $3 OFFSET $4
+	`, userID, topic, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanWords(rows)
+}
+
+// GetTopics returns distinct topics with word counts for a user
+func (r *WordRepository) GetTopics(ctx context.Context, userID string) ([]domain.TopicSummary, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT ai.topic, COUNT(*) as word_count
+		FROM words w
+		JOIN word_ai_data ai ON ai.word_id = w.id
+		WHERE w.user_id = $1 AND ai.topic IS NOT NULL AND ai.topic != ''
+		GROUP BY ai.topic
+		ORDER BY word_count DESC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var topics []domain.TopicSummary
+	for rows.Next() {
+		var t domain.TopicSummary
+		if err := rows.Scan(&t.Topic, &t.WordCount); err != nil {
+			return nil, err
+		}
+		topics = append(topics, t)
+	}
+	return topics, rows.Err()
+}
+
+func scanWords(rows *sql.Rows) ([]*domain.Word, error) {
 	var words []*domain.Word
 	for rows.Next() {
 		var word domain.Word
 		var createdAt, updatedAt sql.NullTime
 		var aiDefinition, aiExampleGood sql.NullString
-		var aiPOS, aiCEFR, aiVIMeaning sql.NullString
+		var aiPOS, aiCEFR, aiVIMeaning, aiTopic sql.NullString
 
 		err := rows.Scan(
 			&word.ID,
@@ -198,6 +266,7 @@ func (r *WordRepository) List(ctx context.Context, userID string, limit, offset 
 			&aiPOS,
 			&aiCEFR,
 			&aiVIMeaning,
+			&aiTopic,
 		)
 		if err != nil {
 			continue
@@ -226,13 +295,16 @@ func (r *WordRepository) List(ctx context.Context, userID string, limit, offset 
 			if aiVIMeaning.Valid {
 				aiData.VIMeaning = &aiVIMeaning.String
 			}
+			if aiTopic.Valid {
+				aiData.Topic = &aiTopic.String
+			}
 			word.AIData = aiData
 		}
 
 		words = append(words, &word)
 	}
 
-	return words, nil
+	return words, rows.Err()
 }
 
 // Count returns the total count of words for a user
@@ -309,9 +381,10 @@ func (r *WordRepository) StoreAIData(ctx context.Context, wordID string, aiData 
 			pos,
 			cefr_level,
 			vi_meaning,
+			topic,
 			generated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (word_id) DO NOTHING
 	`,
 		wordID,
@@ -320,6 +393,7 @@ func (r *WordRepository) StoreAIData(ctx context.Context, wordID string, aiData 
 		aiData.PartOfSpeech,
 		aiData.CEFRLevel,
 		aiData.VIMeaning,
+		aiData.Topic,
 		time.Now(),
 	)
 	return err

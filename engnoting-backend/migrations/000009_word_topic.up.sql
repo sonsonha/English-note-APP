@@ -1,0 +1,1 @@
+ALTER TABLE word_ai_data ADD COLUMN IF NOT EXISTS topic VARCHAR(50);

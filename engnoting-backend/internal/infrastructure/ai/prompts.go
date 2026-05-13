@@ -7,6 +7,7 @@ Required keys:
 - definition: concise English definition
 - example_good: a correct example sentence
 - vi_meaning: short Vietnamese translation (1-5 words)
+- topic: classify the word into exactly one of these categories: technology, food, travel, health, business, education, entertainment, nature, society, science, arts, sports, daily_life, academic, emotion, finance, history, environment, family, law
 Optional keys:
 - part_of_speech: noun/verb/adjective/etc
 - cefr_level: A1/A2/B1/B2/C1/C2

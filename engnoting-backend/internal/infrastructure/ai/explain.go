@@ -14,6 +14,7 @@ type explanation struct {
 	PartOfSpeech string `json:"part_of_speech"`
 	CEFRLevel    string `json:"cefr_level"`
 	VIMeaning    string `json:"vi_meaning"`
+	Topic        string `json:"topic"`
 }
 
 type quiz struct {
@@ -53,6 +54,7 @@ func ExplainWordSafe(client Client, word, context string) (*domain.AIExplanation
 		PartOfSpeech: exp.PartOfSpeech,
 		CEFRLevel:    exp.CEFRLevel,
 		VIMeaning:    exp.VIMeaning,
+		Topic:        exp.Topic,
 	}, nil
 }
 

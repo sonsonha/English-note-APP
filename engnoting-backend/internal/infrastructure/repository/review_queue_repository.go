@@ -78,6 +78,31 @@ func (r *ReviewQueueRepository) GetQueueItemsInRange(ctx context.Context, userID
 	return items, rows.Err()
 }
 
+// GetQueueItemsByTopic retrieves queue items for words in a specific topic, ordered by priority DESC.
+func (r *ReviewQueueRepository) GetQueueItemsByTopic(ctx context.Context, userID, topic string) ([]domain.ReviewQueueItem, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT rq.user_id, rq.word_id, rq.priority_score, rq.reason
+		FROM review_queue rq
+		JOIN word_ai_data ai ON ai.word_id = rq.word_id
+		WHERE rq.user_id = $1 AND ai.topic = $2
+		ORDER BY rq.priority_score DESC
+	`, userID, topic)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.ReviewQueueItem
+	for rows.Next() {
+		var item domain.ReviewQueueItem
+		if err := rows.Scan(&item.UserID, &item.WordID, &item.PriorityScore, &item.Reason); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
 // GetQueueItems retrieves queue items for a user
 func (r *ReviewQueueRepository) GetQueueItems(ctx context.Context, userID string) ([]domain.ReviewQueueItem, error) {
 	rows, err := r.db.QueryContext(ctx, `

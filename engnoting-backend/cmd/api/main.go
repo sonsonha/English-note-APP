@@ -89,9 +89,10 @@ func main() {
 	authUseCase := usecase.NewAuthUseCase(userRepo, jwtService, refreshSessionRepo)
 	calendarStatsUseCase := usecase.NewCalendarStatsUseCase(vocabDailyStatsRepo)
 	wordQuizUseCase := usecase.NewWordQuizUseCase(wordQuizRepo, wordRepo)
+	topicUseCase := usecase.NewTopicUseCase(wordRepo)
 
 	// Presentation layer: HTTP handlers
-	handler := httphandler.NewHandler(wordUseCase, reviewUseCase, sessionUseCase, authUseCase, calendarStatsUseCase, wordQuizUseCase)
+	handler := httphandler.NewHandler(wordUseCase, reviewUseCase, sessionUseCase, authUseCase, calendarStatsUseCase, wordQuizUseCase, topicUseCase)
 
 	// Router setup
 	r := httphandler.NewRouter(handler, jwtService)

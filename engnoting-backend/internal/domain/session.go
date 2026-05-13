@@ -57,6 +57,6 @@ type ReviewQueueItem struct {
 type ReviewQueueRepository interface {
 	Rebuild(ctx context.Context, userID string, items []ReviewQueueItem) error
 	GetQueueItems(ctx context.Context, userID string) ([]ReviewQueueItem, error)
-	// GetQueueItemsInRange filters the queue to words added within [from, to], capped at limit.
 	GetQueueItemsInRange(ctx context.Context, userID string, from, to time.Time, limit int) ([]ReviewQueueItem, error)
+	GetQueueItemsByTopic(ctx context.Context, userID, topic string) ([]ReviewQueueItem, error)
 }

@@ -108,6 +108,9 @@ func (uc *WordUseCase) generateAIExplanation(wordID, word, wordContext string) {
 		VIMeaning:    &exp.VIMeaning,
 		GeneratedAt:  time.Now(),
 	}
+	if exp.Topic != "" {
+		aiData.Topic = &exp.Topic
+	}
 
 	ctx := context.Background()
 	_ = uc.wordRepo.StoreAIData(ctx, wordID, aiData)

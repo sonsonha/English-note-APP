@@ -46,6 +46,10 @@ func NewRouter(handler *Handler, jwtService *auth.JwtService) http.Handler {
 		r.Get("/reviews/session/current", handler.GetCurrentItem)
 		r.Post("/reviews/session/advance", handler.AdvanceSession)
 		r.Post("/reviews/submit", handler.SubmitReview)
+
+		// Topic endpoints
+		r.Get("/topics", handler.GetTopics)
+		r.Get("/topics/{topic}/words", handler.GetTopicWords)
 	})
 
 	// Admin endpoints (no auth — internal use only)
