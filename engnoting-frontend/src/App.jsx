@@ -9,6 +9,7 @@ import Review from './screens/Review.jsx';
 import Results from './screens/Results.jsx';
 import Calendar from './screens/Calendar.jsx';
 import Settings from './screens/Settings.jsx';
+import Topics from './screens/Topics.jsx';
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -22,7 +23,7 @@ export default function App() {
   const openWord = (id) => { setActiveWordId(id); setScreen('word'); };
   const finishSession = (results) => { setSessionResults(results); setScreen('results'); };
   const goToLibrary = (scope) => { setLibraryScope(scope || null); setScreen('library'); };
-  // goToReview({ from?, to?, limit?, label? }) — with scope shows config step first
+  // goToReview({ from?, to?, limit?, label?, topic? }) — with scope shows config step first
   const goToReview = (config) => { setReviewConfig(config || null); setScreen('review'); };
 
   if (loading) {
@@ -90,6 +91,14 @@ export default function App() {
           setScreen={setScreen}
           openWord={openWord}
           goToLibrary={goToLibrary}
+          goToReview={goToReview}
+        />
+      );
+      break;
+    case 'topics':
+      content = (
+        <Topics
+          openWord={openWord}
           goToReview={goToReview}
         />
       );

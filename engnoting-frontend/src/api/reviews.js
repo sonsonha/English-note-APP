@@ -1,11 +1,12 @@
 import { apiJSON } from './client.js';
 
-// opts: { limit?: number, from?: string (YYYY-MM-DD), to?: string, label?: string }
+// opts: { limit?: number, from?: string (YYYY-MM-DD), to?: string, label?: string, topic?: string }
 export async function startSession(opts = {}) {
   const body = {};
   if (opts.limit > 0) body.limit = opts.limit;
   if (opts.from)      body.from  = opts.from;
   if (opts.to)        body.to    = opts.to;
+  if (opts.topic)     body.topic = opts.topic;
   return apiJSON('/api/v1/reviews/session', {
     method: 'POST',
     body: JSON.stringify(body),

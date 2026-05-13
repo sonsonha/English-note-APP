@@ -35,7 +35,8 @@ export default function Sidebar({ screen, setScreen, wordCount }) {
 
       <div className="nav-section">
         <div className="nav-label">Explore</div>
-        <NavItem id="library" screen={screen} setScreen={setScreen} icon="book" label="My Library" badge={wordCount || undefined} />
+        <NavItem id="library" screen={screen} setScreen={setScreen} icon="book"     label="My Library" badge={wordCount || undefined} />
+        <NavItem id="topics"  screen={screen} setScreen={setScreen} icon="bookmark" label="Topics" />
       </div>
 
       <div className="nav-section">
