@@ -30,6 +30,10 @@ func (m *mockQueueRepo) GetQueueItems(ctx context.Context, userID string) ([]dom
 	return nil, nil
 }
 
+func (m *mockQueueRepo) GetQueueItemsInRange(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.ReviewQueueItem, error) {
+	return nil, nil
+}
+
 // mockWordStatsRepo implements domain.WordStatsRepository.
 type mockWordStatsRepo struct {
 	loadStatsFn func(ctx context.Context, userID string) ([]domain.WordStats, error)

@@ -15,13 +15,13 @@ const (
 )
 
 type VocabDailyStats struct {
-	UserID                    string
-	StatDate                  time.Time
-	AddedWordsCount           int
-	ReviewedWordsCount        int
-	AccuracyRate              float64
-	Status                    CalendarStatus
-	UpdatedAt                 time.Time
+	UserID             string
+	StatDate           time.Time
+	AddedWordsCount    int
+	ReviewedWordsCount int
+	AccuracyRate       float64
+	Status             CalendarStatus
+	UpdatedAt          time.Time
 }
 
 type VocabDailyStatsRepository interface {
@@ -33,22 +33,22 @@ type VocabDailyStatsRepository interface {
 	RecalculateDailyStatus(ctx context.Context, userID string, date time.Time) error
 }
 
-func CalculateCalendarStatus(added, reviewed, correct int) CalendarStatus {
-	if added == 0 {
-		return CalendarStatusFallow
-	}
-	if reviewed == 0 {
-		return CalendarStatusTending
-	}
+// func CalculateCalendarStatus(added, reviewed, correct int) CalendarStatus {
+// 	if added == 0 {
+// 		return CalendarStatusFallow
+// 	}
+// 	if reviewed == 0 {
+// 		return CalendarStatusTending
+// 	}
 
-	accuracy := float64(correct) / float64(reviewed)
+// 	accuracy := float64(correct) / float64(reviewed)
 
-	switch {
-	case accuracy >= 0.8:
-		return CalendarStatusMastered
-	case accuracy >= 0.6:
-		return CalendarStatusSteady
-	default:
-		return CalendarStatusTending
-	}
-}
+// 	switch {
+// 	case accuracy >= 0.8:
+// 		return CalendarStatusMastered
+// 	case accuracy >= 0.6:
+// 		return CalendarStatusSteady
+// 	default:
+// 		return CalendarStatusTending
+// 	}
+// }

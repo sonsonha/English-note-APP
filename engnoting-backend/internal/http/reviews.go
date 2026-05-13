@@ -115,11 +115,30 @@ func domainItemToSessionItem(item domain.SessionItem) SessionItem {
 	}
 }
 
+type startSessionRequest struct {
+	Limit int    `json:"limit"`
+	From  string `json:"from"` // YYYY-MM-DD, optional
+	To    string `json:"to"`   // YYYY-MM-DD, optional
+}
+
 func (h *Handler) StartSession(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := mustUserIDFromContext(ctx)
 
-	output, err := h.sessionUseCase.StartSession(ctx, usecase.StartSessionInput{UserID: userID})
+	var req startSessionRequest
+	_ = json.NewDecoder(r.Body).Decode(&req) // body is optional
+
+	input := usecase.StartSessionInput{UserID: userID, Limit: req.Limit}
+	if req.From != "" && req.To != "" {
+		from, errF := time.Parse(time.DateOnly, req.From)
+		to, errT := time.Parse(time.DateOnly, req.To)
+		if errF == nil && errT == nil {
+			input.From = &from
+			input.To = &to
+		}
+	}
+
+	output, err := h.sessionUseCase.StartSession(ctx, input)
 	if err != nil {
 		h.logger.Error("failed to start session", "err", err)
 		writeError(w, http.StatusInternalServerError, "failed to create session")

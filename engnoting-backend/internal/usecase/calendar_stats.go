@@ -61,24 +61,51 @@ func (uc *CalendarStatsUseCase) GetCalendarSummaryStats(ctx context.Context, inp
 	if err != nil {
 		return nil, err
 	}
+
 	totalWordsAdded := 0
-	for _, stat := range stats {
-		totalWordsAdded += stat.AddedWordsCount
-	}
 	totalWordsReviewed := 0
 	for _, stat := range stats {
+		totalWordsAdded += stat.AddedWordsCount
 		totalWordsReviewed += stat.ReviewedWordsCount
 	}
-	percentageOfWordsReviewed := int((float64(totalWordsReviewed) / float64(totalWordsAdded)) * 100)
-	accuracyRate := 0.0
+
+	// Average accuracy only over days where words were added
+	activeDays := 0
+	totalAccuracy := 0.0
 	for _, stat := range stats {
-		accuracyRate += stat.AccuracyRate
+		if stat.AddedWordsCount > 0 {
+			totalAccuracy += stat.AccuracyRate
+			activeDays++
+		}
 	}
-	accuracyRate /= float64(len(stats))
+	avgAccuracy := 0.0
+	if activeDays > 0 {
+		avgAccuracy = totalAccuracy / float64(activeDays)
+	}
+
+	reviewRate := 0
+	if totalWordsAdded > 0 {
+		reviewRate = int(float64(totalWordsReviewed) / float64(totalWordsAdded) * 100)
+	}
+
+	var status domain.CalendarStatus
+	switch {
+	case totalWordsAdded == 0:
+		status = domain.CalendarStatusFallow
+	case totalWordsReviewed == 0:
+		status = domain.CalendarStatusTending
+	case avgAccuracy >= 0.8:
+		status = domain.CalendarStatusMastered
+	case avgAccuracy >= 0.6:
+		status = domain.CalendarStatusSteady
+	default:
+		status = domain.CalendarStatusTending
+	}
+
 	return &CalendarSummaryStatsOutput{
 		TotalWordsAdded:           totalWordsAdded,
-		PercentageOfWordsReviewed: percentageOfWordsReviewed,
-		AccuracyRate:              accuracyRate,
-		Status:                    domain.CalculateCalendarStatus(len(stats), totalWordsReviewed, int(accuracyRate)),
+		PercentageOfWordsReviewed: reviewRate,
+		AccuracyRate:              avgAccuracy,
+		Status:                    status,
 	}, nil
 }

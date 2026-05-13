@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/sonsonha/eng-noting/internal/domain"
 )
@@ -47,6 +48,34 @@ func (r *ReviewQueueRepository) Rebuild(ctx context.Context, userID string, item
 	}
 
 	return tx.Commit()
+}
+
+// GetQueueItemsInRange retrieves queue items for words added within [from, to], ordered by priority DESC.
+func (r *ReviewQueueRepository) GetQueueItemsInRange(ctx context.Context, userID string, from, to time.Time, limit int) ([]domain.ReviewQueueItem, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT rq.user_id, rq.word_id, rq.priority_score, rq.reason
+		FROM review_queue rq
+		JOIN words w ON w.id = rq.word_id
+		WHERE rq.user_id = $1
+		  AND DATE(w.created_at) >= $2
+		  AND DATE(w.created_at) <= $3
+		ORDER BY rq.priority_score DESC
+		LIMIT $4
+	`, userID, from, to, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.ReviewQueueItem
+	for rows.Next() {
+		var item domain.ReviewQueueItem
+		if err := rows.Scan(&item.UserID, &item.WordID, &item.PriorityScore, &item.Reason); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
 }
 
 // GetQueueItems retrieves queue items for a user

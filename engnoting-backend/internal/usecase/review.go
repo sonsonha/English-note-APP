@@ -70,14 +70,15 @@ func (uc *ReviewUseCase) SubmitReview(ctx context.Context, input SubmitReviewInp
 		return nil, err
 	}
 
-	today := time.Now().UTC().Truncate(24 * time.Hour)
-	if err := uc.statsRepo.IncrementReviewedWordsCount(ctx, input.UserID, today); err != nil {
+	// Stats belong to the day the word was added, not today.
+	wordDate := word.CreatedAt.UTC().Truncate(24 * time.Hour)
+	if err := uc.statsRepo.IncrementReviewedWordsCount(ctx, input.UserID, wordDate); err != nil {
 		log.Printf("[WARN] SubmitReview: failed to increment reviewed words count: %v", err)
 	}
-	if err := uc.statsRepo.RecalculateDailyAccuracyRate(ctx, input.UserID, today); err != nil {
+	if err := uc.statsRepo.RecalculateDailyAccuracyRate(ctx, input.UserID, wordDate); err != nil {
 		log.Printf("[WARN] SubmitReview: failed to recalculate daily accuracy rate: %v", err)
 	}
-	if err := uc.statsRepo.RecalculateDailyStatus(ctx, input.UserID, today); err != nil {
+	if err := uc.statsRepo.RecalculateDailyStatus(ctx, input.UserID, wordDate); err != nil {
 		log.Printf("[WARN] SubmitReview: failed to recalculate daily status: %v", err)
 	}
 

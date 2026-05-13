@@ -94,6 +94,27 @@ func (r *ReviewRepository) Create(ctx context.Context, review *domain.Review) er
 	return err
 }
 
+// Recalculate Daily Accuracy Rate recalculates the accuracy rate for a given day and user.
+// func (r *ReviewRepository) RecalculateDailyAccuracyRate(ctx context.Context, userID string, date time.Time) error {
+// 	_, err := r.db.ExecContext(ctx, `
+// 		WITH daily_stats AS (
+// 			SELECT
+// 				COUNT(*) AS total_reviews,
+// 				COUNT(*) FILTER (WHERE result = true) AS correct_reviews
+// 			FROM reviews r
+// 			JOIN words w ON w.id = r.word_id
+// 			WHERE r.user_id = $1
+// 			  AND DATE(w.created_at) = $2
+// 		)
+// 		UPDATE vocab_daily_stats vds
+// 		SET accuracy_rate = CASE WHEN ds.total_reviews > 0 THEN ds.correct_reviews::float / ds.total_reviews ELSE 0 END,
+// 		    updated_at = now()
+// 		FROM daily_stats ds
+// 		WHERE vds.user_id = $1 AND vds.stat_date = $2
+// 	`, userID, date)
+// 	return err
+// }
+
 // GetStats retrieves review statistics for a word
 func (r *ReviewRepository) GetStats(ctx context.Context, wordID string) (*domain.ReviewStats, error) {
 	var stats domain.ReviewStats

@@ -124,13 +124,14 @@ func (r *VocabDailyStatsRepository) BackfillDailyStats(ctx context.Context, user
 		return err
 	}
 
-	// Rebuild reviewed_words_count from reviews table
+	// Rebuild reviewed_words_count: count distinct reviewed words grouped by the day they were added
 	_, err = r.db.ExecContext(ctx, `
 		INSERT INTO vocab_daily_stats (user_id, stat_date, reviewed_words_count, updated_at)
-		SELECT user_id, DATE(reviewed_at) AS stat_date, COUNT(*) AS reviewed_words_count, now()
-		FROM reviews
-		WHERE user_id = $1
-		GROUP BY user_id, DATE(reviewed_at)
+		SELECT w.user_id, DATE(w.created_at) AS stat_date, COUNT(DISTINCT r.word_id) AS reviewed_words_count, now()
+		FROM reviews r
+		JOIN words w ON w.id = r.word_id
+		WHERE w.user_id = $1
+		GROUP BY w.user_id, DATE(w.created_at)
 		ON CONFLICT (user_id, stat_date) DO UPDATE
 		SET reviewed_words_count = EXCLUDED.reviewed_words_count, updated_at = now()
 	`, userID)
@@ -138,18 +139,16 @@ func (r *VocabDailyStatsRepository) BackfillDailyStats(ctx context.Context, user
 		return err
 	}
 
-	// Recalculate accuracy_rate for all days
+	// Recalculate accuracy_rate: avg accuracy of words added on each day
 	_, err = r.db.ExecContext(ctx, `
-		UPDATE vocab_daily_stats
+		UPDATE vocab_daily_stats vds
 		SET accuracy_rate = (
 			SELECT COALESCE(AVG(rs.accuracy_rate), 0)
-			FROM (
-				SELECT DISTINCT word_id
-				FROM reviews
-				WHERE user_id = $1 AND DATE(reviewed_at) = vocab_daily_stats.stat_date
-			) daily
-			JOIN review_stats rs ON rs.word_id = daily.word_id
-			WHERE rs.total_reviews > 0
+			FROM words w
+			JOIN review_stats rs ON rs.word_id = w.id
+			WHERE w.user_id = $1
+			  AND DATE(w.created_at) = vds.stat_date
+			  AND rs.total_reviews > 0
 		),
 		updated_at = now()
 		WHERE user_id = $1
@@ -194,13 +193,11 @@ func (r *VocabDailyStatsRepository) RecalculateDailyAccuracyRate(ctx context.Con
 		UPDATE vocab_daily_stats
 		SET accuracy_rate = (
 			SELECT COALESCE(AVG(rs.accuracy_rate), 0)
-			FROM (
-				SELECT DISTINCT word_id
-				FROM reviews
-				WHERE user_id = $1 AND DATE(reviewed_at) = $2
-			) daily
-			JOIN review_stats rs ON rs.word_id = daily.word_id
-			WHERE rs.total_reviews > 0
+			FROM words w
+			JOIN review_stats rs ON rs.word_id = w.id
+			WHERE w.user_id = $1
+			  AND DATE(w.created_at) = $2
+			  AND rs.total_reviews > 0
 		),
 		updated_at = now()
 		WHERE user_id = $1 AND stat_date = $2

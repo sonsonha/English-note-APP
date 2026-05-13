@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"time"
 
 	"github.com/sonsonha/eng-noting/internal/domain"
 )
@@ -35,6 +36,9 @@ func NewSessionUseCase(
 // StartSessionInput represents input for starting a session
 type StartSessionInput struct {
 	UserID string
+	Limit  int        // 0 = default (10)
+	From   *time.Time // nil = all words
+	To     *time.Time // nil = all words
 }
 
 // StartSessionOutput represents output from starting a session
@@ -46,19 +50,17 @@ type StartSessionOutput struct {
 
 // StartSession starts a new review session
 func (uc *SessionUseCase) StartSession(ctx context.Context, input StartSessionInput) (*StartSessionOutput, error) {
-	// Rebuild review queue
 	if err := uc.rebuildReviewQueue(ctx, input.UserID); err != nil {
 		return nil, err
 	}
 
-	// Build session from queue
-	session, err := uc.buildSession(ctx, input.UserID)
+	session, err := uc.buildSession(ctx, input)
 	if err != nil {
 		return nil, err
 	}
 
 	return &StartSessionOutput{
-		SessionID: "", // Will be set by handler if needed
+		SessionID: "",
 		Items:     session.Items,
 		Total:     len(session.Items),
 	}, nil
@@ -93,68 +95,42 @@ func (uc *SessionUseCase) rebuildReviewQueue(ctx context.Context, userID string)
 	return uc.queueRepo.Rebuild(ctx, userID, queueItems)
 }
 
-// buildSession builds a session from the review queue
-func (uc *SessionUseCase) buildSession(ctx context.Context, userID string) (*domain.Session, error) {
-	queueItems, err := uc.queueRepo.GetQueueItems(ctx, userID)
-	if err != nil {
-		return nil, err
+// buildSession builds a session from the review queue, respecting optional date filter and limit.
+func (uc *SessionUseCase) buildSession(ctx context.Context, input StartSessionInput) (*domain.Session, error) {
+	limit := input.Limit
+	if limit <= 0 {
+		limit = 10
 	}
 
-	const (
-		MaxCritical = 5
-		MaxNormal   = 5
-	)
+	var queueItems []domain.ReviewQueueItem
+	var err error
 
-	var critical []domain.SessionItem
-	var normal []domain.SessionItem
-
-	for _, item := range queueItems {
-		// Get review stats for this word
-		stats, err := uc.reviewRepo.GetStats(ctx, item.WordID)
+	if input.From != nil && input.To != nil {
+		// Date-filtered session: fetch only words added in the given range, up to limit.
+		queueItems, err = uc.queueRepo.GetQueueItemsInRange(ctx, input.UserID, *input.From, *input.To, limit)
 		if err != nil {
-			continue
+			return nil, err
 		}
-
-		// Get last review type
-		lastReviewType, _ := uc.reviewRepo.GetLastReviewType(ctx, item.WordID)
-
-		// Calculate review type
-		reviewCtx := domain.ReviewContext{
-			MPS:            item.PriorityScore,
-			AccuracyRate:   stats.AccuracyRate,
-			TotalReviews:   stats.TotalReviews,
-			LastReviewType: lastReviewType,
-		}
-		reviewType := domain.SelectType(reviewCtx)
-
-		// Enhance reason with review-specific reason
-		reviewReason := domain.Reason(reviewCtx, reviewType)
-		enhancedReason := item.Reason + ". " + reviewReason
-
-		sessionItem := domain.SessionItem{
-			WordID:        item.WordID,
-			ReviewType:    reviewType,
-			PriorityScore: item.PriorityScore,
-			Reason:        enhancedReason,
-		}
-
-		switch {
-		case item.PriorityScore >= 60 && len(critical) < MaxCritical:
-			critical = append(critical, sessionItem)
-		case item.PriorityScore >= 40 && len(normal) < MaxNormal:
-			normal = append(normal, sessionItem)
-		}
-
-		if len(critical) == MaxCritical && len(normal) == MaxNormal {
-			break
+	} else {
+		queueItems, err = uc.queueRepo.GetQueueItems(ctx, input.UserID)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	items := append(critical, normal...)
+	// For date-filtered sessions take top N straight; for default sessions split critical/normal.
+	var items []domain.SessionItem
+	if input.From != nil && input.To != nil {
+		items = uc.pickItems(ctx, input.UserID, queueItems, limit)
+	} else {
+		maxCritical := (limit + 1) / 2
+		maxNormal := limit - maxCritical
+		items = uc.pickItemsCriticalNormal(ctx, input.UserID, queueItems, maxCritical, maxNormal)
+	}
 
-	// Enrich each item with word text and the matching quiz (best-effort; failures are non-fatal).
+	// Enrich with word text and matching quiz (best-effort).
 	for i, item := range items {
-		if word, err := uc.wordRepo.GetByID(ctx, item.WordID, userID); err == nil && word != nil {
+		if word, err := uc.wordRepo.GetByID(ctx, item.WordID, input.UserID); err == nil && word != nil {
 			items[i].WordText = word.Text
 		}
 		if quizzes, err := uc.quizRepo.GetByWordID(ctx, item.WordID); err == nil {
@@ -168,9 +144,61 @@ func (uc *SessionUseCase) buildSession(ctx context.Context, userID string) (*dom
 		}
 	}
 
-	return &domain.Session{
-		UserID: userID,
-		Items:  items,
-		Index:  0,
-	}, nil
+	return &domain.Session{UserID: input.UserID, Items: items, Index: 0}, nil
+}
+
+func (uc *SessionUseCase) makeSessionItem(ctx context.Context, item domain.ReviewQueueItem) (domain.SessionItem, bool) {
+	stats, err := uc.reviewRepo.GetStats(ctx, item.WordID)
+	if err != nil {
+		return domain.SessionItem{}, false
+	}
+	lastReviewType, _ := uc.reviewRepo.GetLastReviewType(ctx, item.WordID)
+	reviewCtx := domain.ReviewContext{
+		MPS:            item.PriorityScore,
+		AccuracyRate:   stats.AccuracyRate,
+		TotalReviews:   stats.TotalReviews,
+		LastReviewType: lastReviewType,
+	}
+	reviewType := domain.SelectType(reviewCtx)
+	return domain.SessionItem{
+		WordID:        item.WordID,
+		ReviewType:    reviewType,
+		PriorityScore: item.PriorityScore,
+		Reason:        item.Reason + ". " + domain.Reason(reviewCtx, reviewType),
+	}, true
+}
+
+// pickItems takes the top N items by priority score (used for date-filtered sessions).
+func (uc *SessionUseCase) pickItems(ctx context.Context, userID string, queue []domain.ReviewQueueItem, limit int) []domain.SessionItem {
+	var items []domain.SessionItem
+	for _, qi := range queue {
+		if len(items) >= limit {
+			break
+		}
+		if si, ok := uc.makeSessionItem(ctx, qi); ok {
+			items = append(items, si)
+		}
+	}
+	return items
+}
+
+// pickItemsCriticalNormal splits items into critical (MPS≥60) and normal (MPS≥40) buckets.
+func (uc *SessionUseCase) pickItemsCriticalNormal(ctx context.Context, userID string, queue []domain.ReviewQueueItem, maxCritical, maxNormal int) []domain.SessionItem {
+	var critical, normal []domain.SessionItem
+	for _, qi := range queue {
+		si, ok := uc.makeSessionItem(ctx, qi)
+		if !ok {
+			continue
+		}
+		switch {
+		case qi.PriorityScore >= 60 && len(critical) < maxCritical:
+			critical = append(critical, si)
+		case qi.PriorityScore >= 40 && len(normal) < maxNormal:
+			normal = append(normal, si)
+		}
+		if len(critical) == maxCritical && len(normal) == maxNormal {
+			break
+		}
+	}
+	return append(critical, normal...)
 }
