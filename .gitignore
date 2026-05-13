@@ -1,0 +1,4 @@
+
+engnoting-backend/.env
+engnoting-backend/tmp/
+*.DS_Store
