@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	AIJobTypeExplainWord     = "explain_word"
-	AIJobTypeInitialQuizzes  = "initial_quizzes"
-	AIJobTypeAdvancedQuizzes = "advanced_quizzes"
+	AIJobTypeExplainWord       = "explain_word"
+	AIJobTypeInitialQuizzes    = "initial_quizzes"
+	AIJobTypeAdvancedQuizzes   = "advanced_quizzes"
+	AIJobTypeBackfillVIMeaning = "backfill_vi_meaning"
 
 	AIJobStatusPending = "pending"
 	AIJobStatusDone    = "done"

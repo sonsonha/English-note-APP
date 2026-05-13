@@ -47,6 +47,9 @@ func NewRouter(handler *Handler, jwtService *auth.JwtService) http.Handler {
 		r.Post("/reviews/submit", handler.SubmitReview)
 	})
 
+	// Admin endpoints (no auth — internal use only)
+	r.Post("/admin/backfill", handler.BackfillAIData)
+
 	// Health check endpoint (no auth)
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -178,6 +178,52 @@ func (uc *WordUseCase) RegenerateWord(ctx context.Context, input RegenerateWordI
 	return &RegenerateWordOutput{WordID: word.ID}, nil
 }
 
+// BackfillAIDataOutput holds counts of jobs enqueued during backfill.
+type BackfillAIDataOutput struct {
+	EnqueuedVIMeaning int
+	EnqueuedQuizzes   int
+}
+
+// BackfillAIData enqueues AI jobs for words missing vi_meaning or quizzes.
+func (uc *WordUseCase) BackfillAIData(ctx context.Context) (*BackfillAIDataOutput, error) {
+	const batchSize = 200
+	out := &BackfillAIDataOutput{}
+
+	viWords, err := uc.wordRepo.ListMissingVIMeaning(ctx, batchSize)
+	if err != nil {
+		return nil, err
+	}
+	for _, w := range viWords {
+		wordCtx := ""
+		if w.Context != nil {
+			wordCtx = *w.Context
+		}
+		if enqErr := uc.jobRepo.Enqueue(ctx, w.ID, w.Text, wordCtx, domain.AIJobTypeBackfillVIMeaning); enqErr != nil {
+			log.Printf("[WARN] BackfillAIData: failed to enqueue vi_meaning job for word %q: %v", w.Text, enqErr)
+			continue
+		}
+		out.EnqueuedVIMeaning++
+	}
+
+	quizWords, err := uc.wordRepo.ListMissingQuizzes(ctx, batchSize)
+	if err != nil {
+		return nil, err
+	}
+	for _, w := range quizWords {
+		wordCtx := ""
+		if w.Context != nil {
+			wordCtx = *w.Context
+		}
+		if enqErr := uc.jobRepo.Enqueue(ctx, w.ID, w.Text, wordCtx, domain.AIJobTypeInitialQuizzes); enqErr != nil {
+			log.Printf("[WARN] BackfillAIData: failed to enqueue quizzes job for word %q: %v", w.Text, enqErr)
+			continue
+		}
+		out.EnqueuedQuizzes++
+	}
+
+	return out, nil
+}
+
 // UpdateWordInput represents input for updating a word
 type UpdateWordInput struct {
 	WordID  string

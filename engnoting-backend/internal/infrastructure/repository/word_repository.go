@@ -244,6 +244,61 @@ func (r *WordRepository) Count(ctx context.Context, userID string) (int, error) 
 	return total, err
 }
 
+// UpdateVIMeaning updates only the vi_meaning field for an existing ai_data row.
+func (r *WordRepository) UpdateVIMeaning(ctx context.Context, wordID, viMeaning string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE word_ai_data SET vi_meaning = $1 WHERE word_id = $2 AND vi_meaning IS NULL`,
+		viMeaning, wordID,
+	)
+	return err
+}
+
+// ListMissingVIMeaning returns words that have an ai_data row but no vi_meaning yet.
+func (r *WordRepository) ListMissingVIMeaning(ctx context.Context, limit int) ([]*domain.Word, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT w.id, w.user_id, w.text, COALESCE(w.context, '')
+		FROM words w
+		JOIN word_ai_data ai ON ai.word_id = w.id
+		WHERE ai.vi_meaning IS NULL
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanWordStubs(rows)
+}
+
+// ListMissingQuizzes returns words that have no quiz rows at all.
+func (r *WordRepository) ListMissingQuizzes(ctx context.Context, limit int) ([]*domain.Word, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT w.id, w.user_id, w.text, COALESCE(w.context, '')
+		FROM words w
+		LEFT JOIN word_quizzes wq ON wq.word_id = w.id
+		WHERE wq.word_id IS NULL
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanWordStubs(rows)
+}
+
+func scanWordStubs(rows *sql.Rows) ([]*domain.Word, error) {
+	var words []*domain.Word
+	for rows.Next() {
+		var w domain.Word
+		var ctx string
+		if err := rows.Scan(&w.ID, &w.UserID, &w.Text, &ctx); err != nil {
+			return nil, err
+		}
+		w.Context = &ctx
+		words = append(words, &w)
+	}
+	return words, rows.Err()
+}
+
 // StoreAIData stores AI-generated data for a word
 func (r *WordRepository) StoreAIData(ctx context.Context, wordID string, aiData *domain.WordAIData) error {
 	_, err := r.db.ExecContext(ctx, `

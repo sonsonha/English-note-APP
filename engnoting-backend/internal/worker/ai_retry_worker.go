@@ -67,6 +67,8 @@ func (w *AIRetryWorker) processJob(ctx context.Context, job domain.AIPendingJob)
 		processErr = w.processInitialQuizzes(ctx, job)
 	case domain.AIJobTypeAdvancedQuizzes:
 		processErr = w.processAdvancedQuizzes(ctx, job)
+	case domain.AIJobTypeBackfillVIMeaning:
+		processErr = w.processBackfillVIMeaning(ctx, job)
 	default:
 		log.Printf("[WARN] AIRetryWorker: unknown job type %q for job %s, skipping", job.JobType, job.ID)
 		_ = w.jobRepo.MarkDone(ctx, job.ID)
@@ -94,9 +96,18 @@ func (w *AIRetryWorker) processExplainWord(ctx context.Context, job domain.AIPen
 		ExampleGood:  exp.ExampleGood,
 		PartOfSpeech: &exp.PartOfSpeech,
 		CEFRLevel:    &exp.CEFRLevel,
+		VIMeaning:    &exp.VIMeaning,
 		GeneratedAt:  time.Now(),
 	}
 	return w.wordRepo.StoreAIData(ctx, job.WordID, aiData)
+}
+
+func (w *AIRetryWorker) processBackfillVIMeaning(ctx context.Context, job domain.AIPendingJob) error {
+	exp, err := w.aiSvc.ExplainWord(job.WordText, job.WordContext)
+	if err != nil {
+		return err
+	}
+	return w.wordRepo.UpdateVIMeaning(ctx, job.WordID, exp.VIMeaning)
 }
 
 func (w *AIRetryWorker) processInitialQuizzes(ctx context.Context, job domain.AIPendingJob) error {

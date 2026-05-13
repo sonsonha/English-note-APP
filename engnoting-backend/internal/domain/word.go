@@ -49,6 +49,9 @@ type WordRepository interface {
 	List(ctx context.Context, userID string, limit, offset int) ([]*Word, error)
 	Count(ctx context.Context, userID string) (int, error)
 	StoreAIData(ctx context.Context, wordID string, aiData *WordAIData) error
+	UpdateVIMeaning(ctx context.Context, wordID, viMeaning string) error
+	ListMissingVIMeaning(ctx context.Context, limit int) ([]*Word, error)
+	ListMissingQuizzes(ctx context.Context, limit int) ([]*Word, error)
 }
 
 // WordStatsRepository defines persistence operations for word stats.

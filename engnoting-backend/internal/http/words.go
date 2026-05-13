@@ -38,6 +38,24 @@ type RegenerateWordResponse struct {
 	WordID string `json:"word_id"`
 }
 
+type BackfillAIDataResponse struct {
+	EnqueuedVIMeaning int `json:"enqueued_vi_meaning"`
+	EnqueuedQuizzes   int `json:"enqueued_quizzes"`
+}
+
+func (h *Handler) BackfillAIData(w http.ResponseWriter, r *http.Request) {
+	out, err := h.wordUseCase.BackfillAIData(r.Context())
+	if err != nil {
+		h.logger.Error("backfill failed", "err", err)
+		writeError(w, http.StatusInternalServerError, "backfill failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, BackfillAIDataResponse{
+		EnqueuedVIMeaning: out.EnqueuedVIMeaning,
+		EnqueuedQuizzes:   out.EnqueuedQuizzes,
+	})
+}
+
 func (h *Handler) RegenerateWord(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := mustUserIDFromContext(ctx)
