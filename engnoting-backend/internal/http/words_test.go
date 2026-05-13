@@ -59,6 +59,10 @@ func (m *mockWordUseCase) RegenerateWord(ctx context.Context, input usecase.Rege
 	return &usecase.RegenerateWordOutput{WordID: "new-word-id"}, nil
 }
 
+func (m *mockWordUseCase) BackfillAIData(_ context.Context) (*usecase.BackfillAIDataOutput, error) {
+	return &usecase.BackfillAIDataOutput{}, nil
+}
+
 // authenticatedRequest creates a request with a valid Bearer UUID in the Authorization header.
 func authenticatedRequest(method, target string, body interface{}) *http.Request {
 	var bodyReader *bytes.Reader

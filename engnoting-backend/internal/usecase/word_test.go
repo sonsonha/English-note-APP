@@ -62,6 +62,16 @@ func (m *mockWordRepo) StoreAIData(ctx context.Context, wordID string, aiData *d
 	return nil
 }
 
+func (m *mockWordRepo) UpdateVIMeaning(_ context.Context, _, _ string) error { return nil }
+
+func (m *mockWordRepo) ListMissingVIMeaning(_ context.Context, _ int) ([]*domain.Word, error) {
+	return nil, nil
+}
+
+func (m *mockWordRepo) ListMissingQuizzes(_ context.Context, _ int) ([]*domain.Word, error) {
+	return nil, nil
+}
+
 // mockAIService implements domain.AIService.
 type mockAIService struct {
 	explainWordFn func(word, ctx string) (*domain.AIExplanation, error)
