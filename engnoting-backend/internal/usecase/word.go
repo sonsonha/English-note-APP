@@ -102,6 +102,7 @@ func (uc *WordUseCase) generateAIExplanation(wordID, word, wordContext string) {
 		ExampleGood:  exp.ExampleGood,
 		PartOfSpeech: &exp.PartOfSpeech,
 		CEFRLevel:    &exp.CEFRLevel,
+		VIMeaning:    &exp.VIMeaning,
 		GeneratedAt:  time.Now(),
 	}
 

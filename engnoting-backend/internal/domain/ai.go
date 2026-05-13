@@ -6,6 +6,7 @@ type AIExplanation struct {
 	ExampleGood  string
 	PartOfSpeech string
 	CEFRLevel    string
+	VIMeaning    string
 }
 
 // AIQuiz represents a single AI-generated quiz item.

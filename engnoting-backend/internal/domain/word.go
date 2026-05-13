@@ -25,6 +25,7 @@ type WordAIData struct {
 	ExampleGood  string
 	PartOfSpeech *string
 	CEFRLevel    *string
+	VIMeaning    *string
 	GeneratedAt  time.Time
 }
 

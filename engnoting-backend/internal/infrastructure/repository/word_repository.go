@@ -77,7 +77,7 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 	var createdAt, updatedAt sql.NullTime
 
 	var aiDefinition, aiExampleGood sql.NullString
-	var aiPOS, aiCEFR sql.NullString
+	var aiPOS, aiCEFR, aiVIMeaning sql.NullString
 
 	err := r.db.QueryRowContext(ctx, `
 		SELECT
@@ -92,7 +92,8 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 			ai.definition,
 			ai.example_good,
 			ai.pos,
-			ai.cefr_level
+			ai.cefr_level,
+			ai.vi_meaning
 		FROM words w
 		LEFT JOIN word_ai_data ai ON ai.word_id = w.id
 		WHERE w.id = $1 AND w.user_id = $2
@@ -109,6 +110,7 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 		&aiExampleGood,
 		&aiPOS,
 		&aiCEFR,
+		&aiVIMeaning,
 	)
 
 	if err == sql.ErrNoRows {
@@ -131,13 +133,16 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 			WordID:      wordID,
 			Definition:  aiDefinition.String,
 			ExampleGood: aiExampleGood.String,
-			GeneratedAt: time.Now(), // Could fetch from DB if needed
+			GeneratedAt: time.Now(),
 		}
 		if aiPOS.Valid {
 			word.AIData.PartOfSpeech = &aiPOS.String
 		}
 		if aiCEFR.Valid {
 			word.AIData.CEFRLevel = &aiCEFR.String
+		}
+		if aiVIMeaning.Valid {
+			word.AIData.VIMeaning = &aiVIMeaning.String
 		}
 	}
 
@@ -159,7 +164,8 @@ func (r *WordRepository) List(ctx context.Context, userID string, limit, offset 
 			ai.definition,
 			ai.example_good,
 			ai.pos,
-			ai.cefr_level
+			ai.cefr_level,
+			ai.vi_meaning
 		FROM words w
 		LEFT JOIN word_ai_data ai ON ai.word_id = w.id
 		WHERE w.user_id = $1
@@ -176,7 +182,7 @@ func (r *WordRepository) List(ctx context.Context, userID string, limit, offset 
 		var word domain.Word
 		var createdAt, updatedAt sql.NullTime
 		var aiDefinition, aiExampleGood sql.NullString
-		var aiPOS, aiCEFR sql.NullString
+		var aiPOS, aiCEFR, aiVIMeaning sql.NullString
 
 		err := rows.Scan(
 			&word.ID,
@@ -191,6 +197,7 @@ func (r *WordRepository) List(ctx context.Context, userID string, limit, offset 
 			&aiExampleGood,
 			&aiPOS,
 			&aiCEFR,
+			&aiVIMeaning,
 		)
 		if err != nil {
 			continue
@@ -215,6 +222,9 @@ func (r *WordRepository) List(ctx context.Context, userID string, limit, offset 
 			}
 			if aiCEFR.Valid {
 				aiData.CEFRLevel = &aiCEFR.String
+			}
+			if aiVIMeaning.Valid {
+				aiData.VIMeaning = &aiVIMeaning.String
 			}
 			word.AIData = aiData
 		}
@@ -243,9 +253,10 @@ func (r *WordRepository) StoreAIData(ctx context.Context, wordID string, aiData 
 			example_good,
 			pos,
 			cefr_level,
+			vi_meaning,
 			generated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (word_id) DO NOTHING
 	`,
 		wordID,
@@ -253,6 +264,7 @@ func (r *WordRepository) StoreAIData(ctx context.Context, wordID string, aiData 
 		aiData.ExampleGood,
 		aiData.PartOfSpeech,
 		aiData.CEFRLevel,
+		aiData.VIMeaning,
 		time.Now(),
 	)
 	return err

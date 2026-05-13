@@ -4,8 +4,9 @@ import "fmt"
 
 const systemPrompt = `You are an English teacher. Return a JSON object only.
 Required keys:
-- definition: concise definition
+- definition: concise English definition
 - example_good: a correct example sentence
+- vi_meaning: short Vietnamese translation (1-5 words)
 Optional keys:
 - part_of_speech: noun/verb/adjective/etc
 - cefr_level: A1/A2/B1/B2/C1/C2

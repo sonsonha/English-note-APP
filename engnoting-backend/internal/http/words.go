@@ -181,6 +181,7 @@ type WordResponse struct {
 	ExampleGood  *string `json:"example_good,omitempty"`
 	PartOfSpeech *string `json:"part_of_speech,omitempty"`
 	CEFRLevel    *string `json:"cefr_level,omitempty"`
+	VIMeaning    *string `json:"vi_meaning,omitempty"`
 }
 
 func (h *Handler) GetWord(w http.ResponseWriter, r *http.Request) {
@@ -228,6 +229,7 @@ func (h *Handler) GetWord(w http.ResponseWriter, r *http.Request) {
 		resp.ExampleGood = &word.AIData.ExampleGood
 		resp.PartOfSpeech = word.AIData.PartOfSpeech
 		resp.CEFRLevel = word.AIData.CEFRLevel
+		resp.VIMeaning = word.AIData.VIMeaning
 	}
 
 	writeJSON(w, http.StatusOK, resp)
@@ -290,6 +292,7 @@ func (h *Handler) ListWords(w http.ResponseWriter, r *http.Request) {
 			words[i].ExampleGood = &word.AIData.ExampleGood
 			words[i].PartOfSpeech = word.AIData.PartOfSpeech
 			words[i].CEFRLevel = word.AIData.CEFRLevel
+			words[i].VIMeaning = word.AIData.VIMeaning
 		}
 	}
 
