@@ -119,6 +119,11 @@ export default function WordDetail({ wordId, setScreen, goToLibrary }) {
                   <h1 style={{ fontSize: 72, letterSpacing: '-0.03em', fontFamily: 'var(--display)', fontWeight: 800 }}>
                     {word.text}
                   </h1>
+                  {word.pronunciation && (
+                    <div style={{ fontFamily: 'var(--mono)', fontSize: 18, color: 'var(--ink-mute)', marginTop: 4, letterSpacing: '0.01em' }}>
+                      {word.pronunciation}
+                    </div>
+                  )}
                 </div>
                 <div className="row faint" style={{ fontSize: 12.5, justifyContent: 'space-between' }}>
                   <div className="row" style={{ gap: 8 }}>

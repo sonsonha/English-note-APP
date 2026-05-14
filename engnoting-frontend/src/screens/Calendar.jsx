@@ -47,12 +47,21 @@ function getISOWeek(date) {
 // ── Reusable period summary card ──────────────────────────────────────────────
 function PeriodSummary({ agg, label, from, to, goToReview, goToLibrary, libraryScope }) {
   const sty = agg?.status && agg.status !== 'fallow' ? STATUS_STYLES[agg.status] : null;
+  const clickable = !!(goToLibrary && libraryScope);
   return (
-    <div className="card" style={{
-      padding: 24,
-      background: sty ? sty.bg : 'var(--paper)',
-      border: `1.5px solid ${sty ? sty.color : 'var(--paper-edge)'}`,
-    }}>
+    <div
+      className="card"
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={clickable ? () => goToLibrary(libraryScope) : undefined}
+      onKeyDown={clickable ? (e) => e.key === 'Enter' && goToLibrary(libraryScope) : undefined}
+      style={{
+        padding: 24,
+        background: sty ? sty.bg : 'var(--paper)',
+        border: `1.5px solid ${sty ? sty.color : 'var(--paper-edge)'}`,
+        cursor: clickable ? 'pointer' : 'default',
+      }}
+    >
       <div className="row between" style={{ marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
         <span className="kicker" style={{ color: sty?.color || 'var(--ink-mute)' }}>{label}</span>
         {agg?.status && agg.status !== 'fallow' && (
@@ -85,20 +94,12 @@ function PeriodSummary({ agg, label, from, to, goToReview, goToLibrary, libraryS
                 </div>
               ))}
             </div>
-            <div className="row" style={{ gap: 10, flexShrink: 0 }}>
-              {goToLibrary && libraryScope && (
-                <button className="btn btn-ghost" style={{ padding: '6px 14px', fontSize: 13 }}
-                  onClick={() => goToLibrary(libraryScope)}>
-                  Open library →
-                </button>
-              )}
-              {goToReview && (
-                <button className="btn btn-primary" style={{ fontSize: 13 }}
-                  onClick={() => goToReview({ from, to, label, limit: Math.min(agg.totalAdded, 30) })}>
-                  <Icon name="play" size={13} /> Review
-                </button>
-              )}
-            </div>
+            {goToReview && (
+              <button className="btn btn-primary" style={{ fontSize: 13 }}
+                onClick={(e) => { e.stopPropagation(); goToReview({ from, to, label, limit: Math.min(agg.totalAdded, 30) }); }}>
+                <Icon name="play" size={13} /> Review
+              </button>
+            )}
           </div>
         </>
       )}
@@ -370,7 +371,7 @@ function MonthView({
 }
 
 // ── Quarter view ──────────────────────────────────────────────────────────────
-function QuarterView({ stats, info, todayISO, goToReview, jumpTo }) {
+function QuarterView({ stats, info, todayISO, goToReview, goToLibrary }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
       {[0, 1, 2].map(i => {
@@ -385,17 +386,19 @@ function QuarterView({ stats, info, todayISO, goToReview, jumpTo }) {
         const sty = agg?.status && agg.status !== 'fallow' ? STATUS_STYLES[agg.status] : null;
         const past = to < todayISO;
         const curr = from <= todayISO && todayISO <= to;
+        const clickable = (past || curr) && (agg?.totalAdded ?? 0) > 0;
 
         return (
           <div
             key={i}
-            role="button"
-            tabIndex={0}
-            onClick={() => jumpTo('month', from)}
-            onKeyDown={e => e.key === 'Enter' && jumpTo('month', from)}
+            role={clickable ? 'button' : undefined}
+            tabIndex={clickable ? 0 : -1}
+            onClick={clickable ? () => goToLibrary({ kind: 'month', value: from }) : undefined}
+            onKeyDown={clickable ? e => e.key === 'Enter' && goToLibrary({ kind: 'month', value: from }) : undefined}
             className="card"
             style={{
-              padding: 20, cursor: 'pointer',
+              padding: 20,
+              cursor: clickable ? 'pointer' : 'default',
               background: sty ? sty.bg : 'var(--paper)',
               border: `1.5px solid ${sty ? sty.color : 'var(--paper-edge)'}`,
               opacity: !past && !curr ? 0.45 : 1,
@@ -436,11 +439,11 @@ function QuarterView({ stats, info, todayISO, goToReview, jumpTo }) {
               <span style={{ opacity: 0.4 }}>·</span>
               <span>{pct(agg?.avgAccuracy)} acc</span>
             </div>
-            <div style={{ marginTop: 'auto' }}>
-              {(past || curr) && (agg?.totalAdded ?? 0) > 0 && (
+            {clickable && (
+              <div style={{ marginTop: 'auto' }}>
                 <button
                   className="btn btn-primary"
-                  style={{ fontSize: 12, padding: '5px 12px', marginBottom: 8, width: '100%' }}
+                  style={{ fontSize: 12, padding: '5px 12px', width: '100%' }}
                   onClick={e => {
                     e.stopPropagation();
                     goToReview({ from, to, label: `${MONTH_NAMES[m]} ${info.year}`, limit: Math.min(agg.totalAdded, 30) });
@@ -448,11 +451,8 @@ function QuarterView({ stats, info, todayISO, goToReview, jumpTo }) {
                 >
                   <Icon name="play" size={12} /> Review
                 </button>
-              )}
-              <div style={{ fontSize: 12, color: sty?.color || 'var(--ink-faint)', fontWeight: 600 }}>
-                View month →
               </div>
-            </div>
+            )}
           </div>
         );
       })}
@@ -698,7 +698,7 @@ export default function Calendar({ goToLibrary, goToReview }) {
         </div>
       ) : view === 'quarter' ? (
         <QuarterView stats={stats} info={info} todayISO={todayISO_}
-          goToReview={goToReview} jumpTo={jumpTo} />
+          goToReview={goToReview} goToLibrary={goToLibrary} />
       ) : view === 'week' ? (
         <WeekView stats={stats} info={info} todayISO={todayISO_} tz={tz}
           goToReview={goToReview} goToLibrary={goToLibrary} />

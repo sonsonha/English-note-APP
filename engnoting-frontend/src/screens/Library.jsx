@@ -1,19 +1,66 @@
 import { useState, useEffect, useMemo } from 'react';
 import Icon from '../components/Icons.jsx';
 import { listWords } from '../api/words.js';
+import { getCalendarStats } from '../api/calendar.js';
+
+const STATUS_STYLES = {
+  fallow:   { bg: 'var(--rose-soft)',    color: 'var(--rose)',         name: 'Fallow'   },
+  tending:  { bg: 'var(--butter-soft)', color: 'var(--butter-deep)',  name: 'Tending'  },
+  steady:   { bg: 'var(--mint-soft)',   color: 'var(--mint-deep)',    name: 'Steady'   },
+  mastered: { bg: 'var(--forest-soft)', color: 'var(--forest-deep)',  name: 'Mastered' },
+};
+
+function pct(n) { return `${Math.round((n || 0) * 100)}%`; }
+
+function aggregateStats(dailyStats) {
+  const days = (dailyStats || []).filter(Boolean);
+  if (!days.length) return null;
+  const totalAdded    = days.reduce((a, s) => a + (s.AddedWordsCount ?? 0), 0);
+  const totalReviewed = days.reduce((a, s) => a + (s.ReviewedWordsCount ?? 0), 0);
+  const activeDays    = days.filter(s => s.AddedWordsCount > 0);
+  const avgAccuracy   = activeDays.length
+    ? activeDays.reduce((a, s) => a + (s.AccuracyRate ?? 0), 0) / activeDays.length
+    : 0;
+  const reviewRate = totalAdded > 0 ? Math.min(totalReviewed / totalAdded, 1) : 0;
+  let status = 'fallow';
+  if (totalAdded > 0 && totalReviewed === 0) status = 'tending';
+  else if (totalAdded > 0 && avgAccuracy >= 0.8) status = 'mastered';
+  else if (totalAdded > 0 && avgAccuracy >= 0.6) status = 'steady';
+  else if (totalAdded > 0) status = 'tending';
+  return { totalAdded, avgAccuracy, reviewRate, status };
+}
+
+function scopeRange(scope) {
+  if (!scope || scope.kind === 'all') return null;
+  if (scope.kind === 'day') return { from: scope.value, to: scope.value };
+  if (scope.kind === 'week') {
+    const start = new Date(scope.value + 'T00:00:00');
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return { from: scope.value, to: end.toISOString().slice(0, 10) };
+  }
+  if (scope.kind === 'month') {
+    const ref = new Date(scope.value + 'T00:00:00');
+    const lastDay = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getDate();
+    const mm = String(ref.getMonth() + 1).padStart(2, '0');
+    return { from: scope.value, to: `${ref.getFullYear()}-${mm}-${String(lastDay).padStart(2, '0')}` };
+  }
+  return null;
+}
 
 function fmtDate(s) {
   if (!s) return '';
   return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function Library({ openWord, scope, setScope }) {
+export default function Library({ openWord, scope, setScope, goToReview }) {
   const [allWords, setAllWords] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [cefrFilter, setCefrFilter] = useState('all');
   const [sort, setSort] = useState('recent');
+  const [scopeAgg, setScopeAgg] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -24,6 +71,14 @@ export default function Library({ openWord, scope, setScope }) {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const range = scopeRange(scope);
+    if (!range) { setScopeAgg(null); return; }
+    getCalendarStats(range.from, range.to)
+      .then(data => setScopeAgg(aggregateStats(data?.Stats || [])))
+      .catch(() => setScopeAgg(null));
+  }, [scope]);
 
   const words = useMemo(() => {
     let list = [...allWords];
@@ -115,6 +170,54 @@ export default function Library({ openWord, scope, setScope }) {
           </button>
         </div>
       )}
+
+      {/* Period stats box */}
+      {scope && scope.kind !== 'all' && scopeAgg && scopeAgg.totalAdded > 0 && (() => {
+        const sty = scopeAgg.status !== 'fallow' ? STATUS_STYLES[scopeAgg.status] : null;
+        const range = scopeRange(scope);
+        return (
+          <div className="card" style={{
+            padding: '18px 24px', marginBottom: 20,
+            background: sty ? sty.bg : 'var(--paper)',
+            border: `1.5px solid ${sty ? sty.color : 'var(--paper-edge)'}`,
+          }}>
+            <div className="row between" style={{ flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+              <div className="row" style={{ gap: 28, flexWrap: 'wrap' }}>
+                {[
+                  { n: scopeAgg.totalAdded,       lbl: 'words'    },
+                  { n: pct(scopeAgg.reviewRate),  lbl: 'reviewed' },
+                  { n: pct(scopeAgg.avgAccuracy), lbl: 'accuracy' },
+                ].map(({ n, lbl }) => (
+                  <div key={lbl}>
+                    <div style={{
+                      fontFamily: 'var(--display)', fontWeight: 800, fontSize: 28,
+                      letterSpacing: '-0.02em', color: sty?.color || 'var(--ink)', lineHeight: 1,
+                    }}>{n}</div>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: sty?.color || 'var(--ink-faint)', marginTop: 3 }}>{lbl}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+                {sty && (
+                  <span style={{
+                    fontSize: 11, padding: '2px 10px', borderRadius: 999,
+                    border: `1px solid ${sty.color}`, color: sty.color,
+                    background: 'rgba(255,255,255,0.35)',
+                  }}>
+                    {STATUS_STYLES[scopeAgg.status].name}
+                  </span>
+                )}
+                {goToReview && range && (
+                  <button className="btn btn-primary" style={{ fontSize: 13 }}
+                    onClick={() => goToReview({ from: range.from, to: range.to, label: scopeLabel, limit: Math.min(scopeAgg.totalAdded, 30) })}>
+                    <Icon name="play" size={13} /> Review
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {/* Filter / sort toolbar */}

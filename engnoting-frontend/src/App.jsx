@@ -54,6 +54,7 @@ export default function App() {
           openWord={openWord}
           scope={libraryScope}
           setScope={setLibraryScope}
+          goToReview={goToReview}
         />
       );
       break;
