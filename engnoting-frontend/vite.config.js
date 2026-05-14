@@ -5,9 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://localhost:8080',
-      '/admin': 'http://localhost:8080',
-      '/health': 'http://localhost:8080',
+      '/api': 'https://engnoting-backend-private-production.up.railway.app',
+      '/admin': 'https://engnoting-backend-private-production.up.railway.app',
+      '/health': 'https://engnoting-backend-private-production.up.railway.app',
     },
   },
 });

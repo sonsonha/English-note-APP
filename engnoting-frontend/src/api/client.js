@@ -1,3 +1,5 @@
+const API_BASE = import.meta.env.VITE_API_BASE || '';
+
 let accessToken = null;
 
 export function setToken(token) {
@@ -22,7 +24,7 @@ export class AuthError extends Error {
 let refreshPromise = null;
 
 async function doRefresh() {
-  const res = await fetch('/api/v1/auth/refresh', {
+  const res = await fetch(API_BASE + '/api/v1/auth/refresh', {
     method: 'POST',
     credentials: 'include',
   });
@@ -46,7 +48,7 @@ export async function apiFetch(path, options = {}) {
   };
   if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
-  const res = await fetch(path, {
+  const res = await fetch(API_BASE + path, {
     ...options,
     credentials: 'include',
     headers,
@@ -55,7 +57,7 @@ export async function apiFetch(path, options = {}) {
   if (res.status === 401 && accessToken) {
     const refreshed = await tryRefresh();
     if (refreshed) {
-      return fetch(path, {
+      return fetch(API_BASE + path, {
         ...options,
         credentials: 'include',
         headers: {
