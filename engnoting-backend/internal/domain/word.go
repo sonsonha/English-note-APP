@@ -20,14 +20,15 @@ type Word struct {
 
 // WordAIData represents AI-generated data for a word.
 type WordAIData struct {
-	WordID       string
-	Definition   string
-	ExampleGood  string
-	PartOfSpeech *string
-	CEFRLevel    *string
-	VIMeaning    *string
-	Topic        *string
-	GeneratedAt  time.Time
+	WordID        string
+	Definition    string
+	ExampleGood   string
+	PartOfSpeech  *string
+	CEFRLevel     *string
+	VIMeaning     *string
+	Topic         *string
+	Pronunciation *string
+	GeneratedAt   time.Time
 }
 
 // TopicSummary represents a topic with its word count.

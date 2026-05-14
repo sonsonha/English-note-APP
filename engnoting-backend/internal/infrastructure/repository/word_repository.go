@@ -77,7 +77,7 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 	var createdAt, updatedAt sql.NullTime
 
 	var aiDefinition, aiExampleGood sql.NullString
-	var aiPOS, aiCEFR, aiVIMeaning, aiTopic sql.NullString
+	var aiPOS, aiCEFR, aiVIMeaning, aiTopic, aiPronunciation sql.NullString
 
 	err := r.db.QueryRowContext(ctx, `
 		SELECT
@@ -94,7 +94,8 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 			ai.pos,
 			ai.cefr_level,
 			ai.vi_meaning,
-			ai.topic
+			ai.topic,
+			ai.pronunciation
 		FROM words w
 		LEFT JOIN word_ai_data ai ON ai.word_id = w.id
 		WHERE w.id = $1 AND w.user_id = $2
@@ -113,6 +114,7 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 		&aiCEFR,
 		&aiVIMeaning,
 		&aiTopic,
+		&aiPronunciation,
 	)
 
 	if err == sql.ErrNoRows {
@@ -149,6 +151,9 @@ func (r *WordRepository) GetByID(ctx context.Context, wordID, userID string) (*d
 		if aiTopic.Valid {
 			word.AIData.Topic = &aiTopic.String
 		}
+		if aiPronunciation.Valid {
+			word.AIData.Pronunciation = &aiPronunciation.String
+		}
 	}
 
 	return &word, nil
@@ -171,7 +176,8 @@ func (r *WordRepository) List(ctx context.Context, userID string, limit, offset 
 			ai.pos,
 			ai.cefr_level,
 			ai.vi_meaning,
-			ai.topic
+			ai.topic,
+			ai.pronunciation
 		FROM words w
 		LEFT JOIN word_ai_data ai ON ai.word_id = w.id
 		WHERE w.user_id = $1
@@ -203,7 +209,8 @@ func (r *WordRepository) ListByTopic(ctx context.Context, userID, topic string, 
 			ai.pos,
 			ai.cefr_level,
 			ai.vi_meaning,
-			ai.topic
+			ai.topic,
+			ai.pronunciation
 		FROM words w
 		LEFT JOIN word_ai_data ai ON ai.word_id = w.id
 		WHERE w.user_id = $1 AND ai.topic = $2
@@ -235,7 +242,8 @@ func (r *WordRepository) ListBySource(ctx context.Context, userID, source string
 			ai.pos,
 			ai.cefr_level,
 			ai.vi_meaning,
-			ai.topic
+			ai.topic,
+			ai.pronunciation
 		FROM words w
 		LEFT JOIN word_ai_data ai ON ai.word_id = w.id
 		WHERE w.user_id = $1 AND w.source = $2
@@ -281,7 +289,7 @@ func scanWords(rows *sql.Rows) ([]*domain.Word, error) {
 		var word domain.Word
 		var createdAt, updatedAt sql.NullTime
 		var aiDefinition, aiExampleGood sql.NullString
-		var aiPOS, aiCEFR, aiVIMeaning, aiTopic sql.NullString
+		var aiPOS, aiCEFR, aiVIMeaning, aiTopic, aiPronunciation sql.NullString
 
 		err := rows.Scan(
 			&word.ID,
@@ -298,6 +306,7 @@ func scanWords(rows *sql.Rows) ([]*domain.Word, error) {
 			&aiCEFR,
 			&aiVIMeaning,
 			&aiTopic,
+			&aiPronunciation,
 		)
 		if err != nil {
 			continue
@@ -328,6 +337,9 @@ func scanWords(rows *sql.Rows) ([]*domain.Word, error) {
 			}
 			if aiTopic.Valid {
 				aiData.Topic = &aiTopic.String
+			}
+			if aiPronunciation.Valid {
+				aiData.Pronunciation = &aiPronunciation.String
 			}
 			word.AIData = aiData
 		}
@@ -438,9 +450,10 @@ func (r *WordRepository) StoreAIData(ctx context.Context, wordID string, aiData 
 			cefr_level,
 			vi_meaning,
 			topic,
+			pronunciation,
 			generated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		ON CONFLICT (word_id) DO NOTHING
 	`,
 		wordID,
@@ -450,6 +463,7 @@ func (r *WordRepository) StoreAIData(ctx context.Context, wordID string, aiData 
 		aiData.CEFRLevel,
 		aiData.VIMeaning,
 		aiData.Topic,
+		aiData.Pronunciation,
 		time.Now(),
 	)
 	return err

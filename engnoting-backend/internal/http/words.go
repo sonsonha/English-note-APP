@@ -193,18 +193,19 @@ func (h *Handler) UpdateWord(w http.ResponseWriter, r *http.Request) {
 }
 
 type WordResponse struct {
-	ID           string  `json:"id"`
-	Text         string  `json:"text"`
-	Context      *string `json:"context,omitempty"`
-	Source       *string `json:"source,omitempty"`
-	Confidence   *int    `json:"confidence,omitempty"`
-	CreatedAt    string  `json:"created_at"`
-	Definition   *string `json:"definition,omitempty"`
-	ExampleGood  *string `json:"example_good,omitempty"`
-	PartOfSpeech *string `json:"part_of_speech,omitempty"`
-	CEFRLevel    *string `json:"cefr_level,omitempty"`
-	VIMeaning    *string `json:"vi_meaning,omitempty"`
-	Topic        *string `json:"topic,omitempty"`
+	ID            string  `json:"id"`
+	Text          string  `json:"text"`
+	Context       *string `json:"context,omitempty"`
+	Source        *string `json:"source,omitempty"`
+	Confidence    *int    `json:"confidence,omitempty"`
+	CreatedAt     string  `json:"created_at"`
+	Definition    *string `json:"definition,omitempty"`
+	ExampleGood   *string `json:"example_good,omitempty"`
+	PartOfSpeech  *string `json:"part_of_speech,omitempty"`
+	CEFRLevel     *string `json:"cefr_level,omitempty"`
+	VIMeaning     *string `json:"vi_meaning,omitempty"`
+	Topic         *string `json:"topic,omitempty"`
+	Pronunciation *string `json:"pronunciation,omitempty"`
 }
 
 func (h *Handler) GetWord(w http.ResponseWriter, r *http.Request) {
@@ -254,6 +255,7 @@ func (h *Handler) GetWord(w http.ResponseWriter, r *http.Request) {
 		resp.CEFRLevel = word.AIData.CEFRLevel
 		resp.VIMeaning = word.AIData.VIMeaning
 		resp.Topic = word.AIData.Topic
+		resp.Pronunciation = word.AIData.Pronunciation
 	}
 
 	writeJSON(w, http.StatusOK, resp)
@@ -318,6 +320,7 @@ func (h *Handler) ListWords(w http.ResponseWriter, r *http.Request) {
 			words[i].CEFRLevel = word.AIData.CEFRLevel
 			words[i].VIMeaning = word.AIData.VIMeaning
 			words[i].Topic = word.AIData.Topic
+			words[i].Pronunciation = word.AIData.Pronunciation
 		}
 	}
 
@@ -364,6 +367,7 @@ func (h *Handler) GetWordsBySource(w http.ResponseWriter, r *http.Request) {
 			words[i].CEFRLevel = word.AIData.CEFRLevel
 			words[i].VIMeaning = word.AIData.VIMeaning
 			words[i].Topic = word.AIData.Topic
+			words[i].Pronunciation = word.AIData.Pronunciation
 		}
 	}
 

@@ -115,6 +115,9 @@ func (uc *WordUseCase) generateAIExplanation(wordID, word, wordContext string) {
 	if exp.Topic != "" {
 		aiData.Topic = &exp.Topic
 	}
+	if exp.Pronunciation != "" {
+		aiData.Pronunciation = &exp.Pronunciation
+	}
 
 	ctx := context.Background()
 	_ = uc.wordRepo.StoreAIData(ctx, wordID, aiData)

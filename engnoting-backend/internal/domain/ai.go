@@ -2,12 +2,13 @@ package domain
 
 // AIExplanation represents AI-generated information for a word.
 type AIExplanation struct {
-	Definition   string
-	ExampleGood  string
-	PartOfSpeech string
-	CEFRLevel    string
-	VIMeaning    string
-	Topic        string
+	Definition    string
+	ExampleGood   string
+	PartOfSpeech  string
+	CEFRLevel     string
+	VIMeaning     string
+	Topic         string
+	Pronunciation string
 }
 
 // AIQuiz represents a single AI-generated quiz item.

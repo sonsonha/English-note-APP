@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"math/rand"
 	"time"
 )
 
@@ -41,23 +42,19 @@ type ReviewContext struct {
 	LastReviewType string
 }
 
-// SelectType determines the quiz level based on accuracy.
-// Levels progress from recognition (L1) to active production (L6).
+// SelectType randomly picks a quiz type from the eligible pool.
+// L1–L4 (MCQ formats) are always available. L5–L6 (typing) unlock at high accuracy.
 func SelectType(ctx ReviewContext) string {
-	switch {
-	case ctx.TotalReviews == 0 || ctx.AccuracyRate < 0.50:
-		return QuizTypeWordMeaningMCQ
-	case ctx.AccuracyRate < 0.62:
-		return QuizTypeContextFillMCQ
-	case ctx.AccuracyRate < 0.72:
-		return QuizTypePhraseMatch
-	case ctx.AccuracyRate < 0.82:
-		return QuizTypeReverseMCQ
-	case ctx.AccuracyRate < 0.92:
-		return QuizTypeRecallTyping
-	default:
-		return QuizTypeContextTyping
+	pool := []string{
+		QuizTypeWordMeaningMCQ,
+		QuizTypeContextFillMCQ,
+		QuizTypePhraseMatch,
+		QuizTypeReverseMCQ,
 	}
+	if ctx.TotalReviews > 0 && ctx.AccuracyRate >= 0.82 {
+		pool = append(pool, QuizTypeRecallTyping, QuizTypeContextTyping)
+	}
+	return pool[rand.Intn(len(pool))]
 }
 
 // Reason provides a short explanation for the selected review type.

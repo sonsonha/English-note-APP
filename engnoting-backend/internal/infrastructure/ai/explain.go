@@ -9,12 +9,13 @@ import (
 )
 
 type explanation struct {
-	Definition   string `json:"definition"`
-	ExampleGood  string `json:"example_good"`
-	PartOfSpeech string `json:"part_of_speech"`
-	CEFRLevel    string `json:"cefr_level"`
-	VIMeaning    string `json:"vi_meaning"`
-	Topic        string `json:"topic"`
+	Definition    string `json:"definition"`
+	ExampleGood   string `json:"example_good"`
+	PartOfSpeech  string `json:"part_of_speech"`
+	CEFRLevel     string `json:"cefr_level"`
+	VIMeaning     string `json:"vi_meaning"`
+	Topic         string `json:"topic"`
+	Pronunciation string `json:"pronunciation"`
 }
 
 type quiz struct {
@@ -49,12 +50,13 @@ func ExplainWordSafe(client Client, word, context string) (*domain.AIExplanation
 	}
 
 	return &domain.AIExplanation{
-		Definition:   exp.Definition,
-		ExampleGood:  exp.ExampleGood,
-		PartOfSpeech: exp.PartOfSpeech,
-		CEFRLevel:    exp.CEFRLevel,
-		VIMeaning:    exp.VIMeaning,
-		Topic:        exp.Topic,
+		Definition:    exp.Definition,
+		ExampleGood:   exp.ExampleGood,
+		PartOfSpeech:  exp.PartOfSpeech,
+		CEFRLevel:     exp.CEFRLevel,
+		VIMeaning:     exp.VIMeaning,
+		Topic:         exp.Topic,
+		Pronunciation: exp.Pronunciation,
 	}, nil
 }
 
