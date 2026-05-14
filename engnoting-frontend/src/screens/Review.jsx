@@ -59,8 +59,8 @@ function MCQ({ item, onAnswer }) {
   const [picked, setPicked] = useState(null);
   const [reveal, setReveal] = useState(false);
 
-  const choices     = quiz?.choices ?? [];
   const correctAnswer = quiz?.answer ?? '';
+  const [choices] = useState(() => [...(quiz?.choices ?? [])].sort(() => Math.random() - 0.5));
   const showWordHeader = WORD_HEADER_TYPES.has(format);
 
   const select = (i) => {
