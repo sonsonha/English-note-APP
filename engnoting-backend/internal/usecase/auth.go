@@ -2,14 +2,15 @@ package usecase
 
 import (
 	"context"
-	"time"
-
+	"encoding/json"
 	"errors"
+	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/sonsonha/eng-noting/internal/domain"
-	"github.com/sonsonha/eng-noting/internal/infrastructure/auth"
+	infraauth "github.com/sonsonha/eng-noting/internal/infrastructure/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -34,18 +35,25 @@ type LoginInput struct {
 type LoginOutput struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+	IsAdmin      bool   `json:"is_admin"`
 }
 
 // AuthUseCase handles authentication-related business logic
 type AuthUseCase struct {
 	userRepo           domain.UserRepository
-	jwtService         *auth.JwtService
+	jwtService         *infraauth.JwtService
 	refreshSessionRepo domain.RefreshSessionRepository
+	googleClientID     string
 }
 
 // NewAuthUseCase creates a new AuthUseCase
-func NewAuthUseCase(userRepo domain.UserRepository, jwtService *auth.JwtService, refreshSessionRepo domain.RefreshSessionRepository) *AuthUseCase {
-	return &AuthUseCase{userRepo: userRepo, jwtService: jwtService, refreshSessionRepo: refreshSessionRepo}
+func NewAuthUseCase(userRepo domain.UserRepository, jwtService *infraauth.JwtService, refreshSessionRepo domain.RefreshSessionRepository, googleClientID string) *AuthUseCase {
+	return &AuthUseCase{
+		userRepo:           userRepo,
+		jwtService:         jwtService,
+		refreshSessionRepo: refreshSessionRepo,
+		googleClientID:     googleClientID,
+	}
 }
 
 // hashPassword hashes a password using bcrypt
@@ -137,7 +145,7 @@ func (uc *AuthUseCase) Login(ctx context.Context, input LoginInput) (*LoginOutpu
 		return nil, err
 		// return nil, domain.DebugError
 	}
-	return &LoginOutput{AccessToken: token, RefreshToken: newRefreshPlain}, nil
+	return &LoginOutput{AccessToken: token, RefreshToken: newRefreshPlain, IsAdmin: user.IsAdmin}, nil
 }
 
 func (uc *AuthUseCase) CreateInitialRefreshSession(ctx context.Context, userID string, familyID string) (*domain.RefreshSession, string, error) {
@@ -222,6 +230,7 @@ type RefreshTokenInput struct {
 type RefreshTokenOutput struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+	IsAdmin      bool   `json:"is_admin"`
 }
 
 // RefreshToken refreshes a token
@@ -279,7 +288,11 @@ func (uc *AuthUseCase) RefreshToken(ctx context.Context, input RefreshTokenInput
 	if err != nil {
 		return nil, err
 	}
-	return &RefreshTokenOutput{AccessToken: accessToken, RefreshToken: newRefreshPlain}, nil
+	user, err := uc.userRepo.GetByID(ctx, refreshSession.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &RefreshTokenOutput{AccessToken: accessToken, RefreshToken: newRefreshPlain, IsAdmin: user.IsAdmin}, nil
 }
 
 func (uc *AuthUseCase) Logout(ctx context.Context, input RefreshTokenInput) error {
@@ -320,4 +333,82 @@ func (uc *AuthUseCase) Logout(ctx context.Context, input RefreshTokenInput) erro
 		return err
 	}
 	return nil
+}
+
+// GoogleLoginInput is the input for Google OAuth sign-in.
+type GoogleLoginInput struct {
+	IDToken string `json:"id_token"`
+}
+
+type googleTokenInfo struct {
+	Sub           string `json:"sub"`
+	Email         string `json:"email"`
+	EmailVerified string `json:"email_verified"`
+	Aud           string `json:"aud"`
+}
+
+// GoogleLogin verifies a Google ID token and signs in (or creates) the user.
+func (uc *AuthUseCase) GoogleLogin(ctx context.Context, input GoogleLoginInput) (*LoginOutput, error) {
+	info, err := verifyGoogleIDToken(ctx, input.IDToken, uc.googleClientID)
+	if err != nil {
+		return nil, domain.ErrInvalidCredentials
+	}
+
+	user, err := uc.userRepo.GetByGoogleID(ctx, info.Sub)
+	if errors.Is(err, domain.ErrUserNotFound) {
+		// Try linking to existing email account
+		existing, emailErr := uc.userRepo.GetByEmail(ctx, info.Email)
+		if emailErr == nil {
+			user = existing
+		} else {
+			googleID := info.Sub
+			user = &domain.User{
+				ID:        uuid.NewString(),
+				Email:     info.Email,
+				GoogleID:  &googleID,
+				IsAdmin:   false,
+				CreatedAt: time.Now(),
+			}
+			if createErr := uc.userRepo.Create(ctx, user); createErr != nil {
+				return nil, createErr
+			}
+		}
+	} else if err != nil {
+		return nil, err
+	}
+
+	familyID := uuid.NewString()
+	refreshSession, newRefreshPlain, err := uc.CreateInitialRefreshSession(ctx, user.ID, familyID)
+	if err != nil {
+		return nil, err
+	}
+	token, err := uc.jwtService.GenerateAccessToken(refreshSession.UserID, refreshSession.FamilyID)
+	if err != nil {
+		return nil, err
+	}
+	return &LoginOutput{AccessToken: token, RefreshToken: newRefreshPlain, IsAdmin: user.IsAdmin}, nil
+}
+
+func verifyGoogleIDToken(ctx context.Context, idToken string, expectedAud string) (*googleTokenInfo, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		"https://oauth2.googleapis.com/tokeninfo?id_token="+idToken, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, domain.ErrInvalidCredentials
+	}
+	var info googleTokenInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		return nil, err
+	}
+	if expectedAud != "" && info.Aud != expectedAud {
+		return nil, domain.ErrInvalidCredentials
+	}
+	return &info, nil
 }

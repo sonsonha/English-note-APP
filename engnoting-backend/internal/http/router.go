@@ -21,6 +21,7 @@ func NewRouter(handler *Handler, jwtService *auth.JwtService) http.Handler {
 		r.Post("/login", handler.Login)
 		r.Post("/refresh", handler.RefreshToken)
 		r.Post("/logout", handler.Logout)
+		r.Post("/google", handler.GoogleLogin)
 	})
 
 	// Protected endpoints
@@ -53,7 +54,18 @@ func NewRouter(handler *Handler, jwtService *auth.JwtService) http.Handler {
 		r.Get("/topics/{topic}/words", handler.GetTopicWords)
 	})
 
-	// Admin endpoints (no auth — internal use only)
+	// Admin endpoints (requires auth + admin role)
+	r.Route("/api/v1/admin", func(r chi.Router) {
+		r.Use(func(next http.Handler) http.Handler {
+			return AuthMiddleware(next, jwtService)
+		})
+		r.Use(handler.AdminMiddleware)
+		r.Get("/stats", handler.AdminGetStats)
+		r.Get("/users", handler.AdminListUsers)
+		r.Post("/users/{id}/toggle-admin", handler.AdminToggleAdmin)
+	})
+
+	// Internal backfill (no auth)
 	r.Post("/admin/backfill", handler.BackfillAIData)
 
 	// Health check endpoint (no auth)

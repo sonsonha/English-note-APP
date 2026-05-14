@@ -28,6 +28,7 @@ type AuthUseCaser interface {
 	RefreshToken(ctx context.Context, input usecase.RefreshTokenInput) (*usecase.RefreshTokenOutput, error)
 	Logout(ctx context.Context, input usecase.RefreshTokenInput) error
 	VerifyRefreshToken(ctx context.Context, input usecase.VerifyRefreshTokenInput) (*usecase.VerifyRefreshTokenOutput, error)
+	GoogleLogin(ctx context.Context, input usecase.GoogleLoginInput) (*usecase.LoginOutput, error)
 }
 
 // ReviewUseCaser defines the review operations needed by the HTTP layer.
@@ -95,6 +96,7 @@ type Handler struct {
 	calendarStatsUseCase CalendarStatsUseCaser
 	wordQuizUseCase      WordQuizUseCaser
 	topicUseCase         TopicUseCaser
+	adminUseCase         AdminUseCaser
 	logger               Logger
 
 	sessionStore map[string]sessionEntry
@@ -110,6 +112,7 @@ func NewHandler(
 	calendarStatsUseCase CalendarStatsUseCaser,
 	wordQuizUseCase WordQuizUseCaser,
 	topicUseCase TopicUseCaser,
+	adminUseCase AdminUseCaser,
 ) *Handler {
 	return &Handler{
 		wordUseCase:          wordUseCase,
@@ -119,6 +122,7 @@ func NewHandler(
 		calendarStatsUseCase: calendarStatsUseCase,
 		wordQuizUseCase:      wordQuizUseCase,
 		topicUseCase:         topicUseCase,
+		adminUseCase:         adminUseCase,
 		logger:               &stdLogger{},
 		sessionStore:         make(map[string]sessionEntry),
 	}

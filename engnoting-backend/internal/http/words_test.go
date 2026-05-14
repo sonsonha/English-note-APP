@@ -168,7 +168,7 @@ func TestHandler_CreateWord(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			uc := &mockWordUseCase{createWordFn: tt.useFn}
-			h := NewHandler(uc, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+			h := NewHandler(uc, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 
 			var req *http.Request
 			if tt.rawBody != "" {
@@ -247,7 +247,7 @@ func TestHandler_GetWord(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			uc := &mockWordUseCase{getWordFn: tt.useFn}
-			h := NewHandler(uc, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+			h := NewHandler(uc, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 
 			req := authenticatedRequest(http.MethodGet, "/api/words/"+tt.wordID, nil)
 			req.SetPathValue("id", tt.wordID)
@@ -380,7 +380,7 @@ func TestHandler_ListWords(t *testing.T) {
 			}
 
 			uc := &mockWordUseCase{listWordsFn: useFn}
-			h := NewHandler(uc, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+			h := NewHandler(uc, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 
 			target := fmt.Sprintf("/api/words%s", tt.queryParams)
 			req := authenticatedRequest(http.MethodGet, target, nil)
@@ -424,7 +424,7 @@ func TestHandler_ListWords_AIDataMapped(t *testing.T) {
 			}, nil
 		},
 	}
-	h := NewHandler(uc, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+	h := NewHandler(uc, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 
 	req := authenticatedRequest(http.MethodGet, "/api/words", nil)
 	w := httptest.NewRecorder()

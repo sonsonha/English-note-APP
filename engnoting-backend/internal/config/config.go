@@ -18,6 +18,7 @@ type Config struct {
 	JWTRefreshExpireMinutes int
 	JWTTokenTypeAccess      string
 	JWTTokenTypeRefresh     string
+	GoogleClientID          string
 }
 
 // Main function to load config
@@ -56,6 +57,7 @@ func LoadConfigDev() *Config {
 		JWTRefreshExpireMinutes: envIntOr("JWT_REFRESH_EXPIRE_MINUTES", 1440),
 		JWTTokenTypeAccess:      "access",
 		JWTTokenTypeRefresh:     "refresh",
+		GoogleClientID:          os.Getenv("GOOGLE_CLIENT_ID"),
 	}
 }
 

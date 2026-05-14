@@ -10,6 +10,7 @@ var (
 	ErrEmailAlreadyExists   = errors.New("email already exists")
 	ErrInvalidCredentials   = errors.New("invalid credentials")
 	ErrUnauthorized         = errors.New("unauthorized")
+	ErrForbidden            = errors.New("forbidden")
 	ErrInternalServerError  = errors.New("internal server error")
 	ErrExpiredRefreshToken  = errors.New("expired refresh token")
 	ErrRevokedRefreshToken  = errors.New("revoked refresh token")

@@ -58,6 +58,7 @@ func main() {
 	vocabDailyStatsRepo := infrarepo.NewVocabDailyStatsRepository(db)
 	wordQuizRepo := infrarepo.NewWordQuizRepository(db)
 	aiPendingJobRepo := infrarepo.NewAIPendingJobRepository(db)
+	adminStatsRepo := infrarepo.NewAdminStatsRepository(db)
 
 	// Infrastructure layer: AI Service
 	var aiClient infraai.Client
@@ -86,13 +87,14 @@ func main() {
 	aiWorker := worker.NewAIRetryWorker(aiPendingJobRepo, aiService, wordQuizRepo, wordRepo, 2*time.Minute)
 	go aiWorker.Start(appCtx)
 	sessionUseCase := usecase.NewSessionUseCase(reviewQueueRepo, wordStatsRepo, reviewRepo, wordRepo, wordQuizRepo)
-	authUseCase := usecase.NewAuthUseCase(userRepo, jwtService, refreshSessionRepo)
+	authUseCase := usecase.NewAuthUseCase(userRepo, jwtService, refreshSessionRepo, cfg.GoogleClientID)
 	calendarStatsUseCase := usecase.NewCalendarStatsUseCase(vocabDailyStatsRepo)
 	wordQuizUseCase := usecase.NewWordQuizUseCase(wordQuizRepo, wordRepo)
 	topicUseCase := usecase.NewTopicUseCase(wordRepo)
+	adminUseCase := usecase.NewAdminUseCase(userRepo, adminStatsRepo)
 
 	// Presentation layer: HTTP handlers
-	handler := httphandler.NewHandler(wordUseCase, reviewUseCase, sessionUseCase, authUseCase, calendarStatsUseCase, wordQuizUseCase, topicUseCase)
+	handler := httphandler.NewHandler(wordUseCase, reviewUseCase, sessionUseCase, authUseCase, calendarStatsUseCase, wordQuizUseCase, topicUseCase, adminUseCase)
 
 	// Router setup
 	r := httphandler.NewRouter(handler, jwtService)

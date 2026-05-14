@@ -26,6 +26,7 @@ type LoginRequest struct {
 type LoginResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+	IsAdmin      bool   `json:"is_admin"`
 }
 
 type RefreshTokenRequest struct {
@@ -98,7 +99,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := LoginResponse{AccessToken: output.AccessToken, RefreshToken: output.RefreshToken}
+	resp := LoginResponse{AccessToken: output.AccessToken, RefreshToken: output.RefreshToken, IsAdmin: output.IsAdmin}
 	cookie := &http.Cookie{
 		Name:     "refresh_token",
 		Value:    output.RefreshToken,
@@ -124,6 +125,37 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, output)
+}
+
+func (h *Handler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var req struct {
+		IDToken string `json:"id_token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.IDToken == "" {
+		writeError(w, http.StatusBadRequest, "invalid request")
+		return
+	}
+	output, err := h.authUseCase.GoogleLogin(ctx, usecase.GoogleLoginInput{IDToken: req.IDToken})
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidCredentials) {
+			writeError(w, http.StatusUnauthorized, "invalid Google credentials")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to authenticate")
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    output.RefreshToken,
+		HttpOnly: true,
+		Secure:   true,
+	})
+	writeJSON(w, http.StatusOK, LoginResponse{
+		AccessToken:  output.AccessToken,
+		RefreshToken: output.RefreshToken,
+		IsAdmin:      output.IsAdmin,
+	})
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {

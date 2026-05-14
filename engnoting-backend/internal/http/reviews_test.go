@@ -74,6 +74,27 @@ func (m *mockAuthUseCase) VerifyRefreshToken(ctx context.Context, input usecase.
 	return &usecase.VerifyRefreshTokenOutput{RefreshSession: &domain.RefreshSession{}}, nil
 }
 
+func (m *mockAuthUseCase) GoogleLogin(ctx context.Context, input usecase.GoogleLoginInput) (*usecase.LoginOutput, error) {
+	return &usecase.LoginOutput{AccessToken: "access-token", RefreshToken: "refresh-token"}, nil
+}
+
+// mockAdminUseCase implements AdminUseCaser.
+type mockAdminUseCase struct{}
+
+func (m *mockAdminUseCase) CheckIsAdmin(ctx context.Context, userID string) (bool, error) {
+	return false, nil
+}
+func (m *mockAdminUseCase) ListUsers(ctx context.Context) (*usecase.ListUsersOutput, error) {
+	return &usecase.ListUsersOutput{}, nil
+}
+func (m *mockAdminUseCase) ToggleAdmin(ctx context.Context, input usecase.ToggleAdminInput) error {
+	return nil
+}
+
+func (m *mockAdminUseCase) GetStats(ctx context.Context) (*usecase.AdminStatsOutput, error) {
+	return &usecase.AdminStatsOutput{}, nil
+}
+
 // mockSessionUseCase implements SessionUseCaser.
 type mockSessionUseCase struct {
 	startSessionFn func(ctx context.Context, input usecase.StartSessionInput) (*usecase.StartSessionOutput, error)
@@ -314,7 +335,7 @@ func TestHandler_SubmitReview(t *testing.T) {
 					return reviewFn(ctx, input)
 				},
 			}
-			h := NewHandler(&mockWordUseCase{}, reviewUC, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+			h := NewHandler(&mockWordUseCase{}, reviewUC, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 			initialIndex := 0
 			if tt.sessionID != "" {
 				expiresAt := tt.expiresAt
@@ -383,7 +404,7 @@ func TestHandler_StartSession(t *testing.T) {
 				return nil, errors.New("session build failed")
 			},
 		}
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, sessionUC, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, sessionUC, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		req := authenticatedRequest(http.MethodPost, "/api/reviews/session", nil)
 		w := httptest.NewRecorder()
 		h.StartSession(w, req)
@@ -405,7 +426,7 @@ func TestHandler_StartSession(t *testing.T) {
 				}, nil
 			},
 		}
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, sessionUC, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, sessionUC, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		req := authenticatedRequest(http.MethodPost, "/api/reviews/session", nil)
 		w := httptest.NewRecorder()
 		h.StartSession(w, req)
@@ -435,7 +456,7 @@ func TestHandler_StartSession(t *testing.T) {
 				return &usecase.StartSessionOutput{Items: []domain.SessionItem{{WordID: "w1", ReviewType: "mcq"}}, Total: 1}, nil
 			},
 		}
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, sessionUC, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, sessionUC, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		req := authenticatedRequest(http.MethodPost, "/api/reviews/session", nil)
 		w := httptest.NewRecorder()
 		h.StartSession(w, req)
@@ -456,7 +477,7 @@ func TestHandler_StartSession(t *testing.T) {
 // TestHandler_GetCurrentItem tests the GetCurrentItem HTTP handler.
 func TestHandler_GetCurrentItem(t *testing.T) {
 	t.Run("missing session_id query param returns 400", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		req := authenticatedRequest(http.MethodGet, "/api/reviews/session/current", nil)
 		w := httptest.NewRecorder()
 		h.GetCurrentItem(w, req)
@@ -466,7 +487,7 @@ func TestHandler_GetCurrentItem(t *testing.T) {
 	})
 
 	t.Run("non-existent session_id returns 404", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		req := authenticatedRequest(http.MethodGet, "/api/reviews/session/current?session_id=does-not-exist", nil)
 		w := httptest.NewRecorder()
 		h.GetCurrentItem(w, req)
@@ -476,7 +497,7 @@ func TestHandler_GetCurrentItem(t *testing.T) {
 	})
 
 	t.Run("expired session returns 404 and is removed from store", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		sess := makeTestSession(testUserID, []string{"w1"})
 		seedSession(h, "expired-session", sess, time.Now().Add(-1*time.Hour))
 
@@ -496,7 +517,7 @@ func TestHandler_GetCurrentItem(t *testing.T) {
 	})
 
 	t.Run("session owned by different user returns 403", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		otherUserSess := makeTestSession("other-user-id", []string{"w1"})
 		seedSession(h, "their-session", otherUserSess, time.Now().Add(sessionTTL))
 
@@ -510,7 +531,7 @@ func TestHandler_GetCurrentItem(t *testing.T) {
 	})
 
 	t.Run("session at end returns done=true", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		sess := makeTestSession(testUserID, []string{"w1"})
 		sess.Index = 1 // past the end
 		seedSession(h, "done-session", sess, time.Now().Add(sessionTTL))
@@ -532,7 +553,7 @@ func TestHandler_GetCurrentItem(t *testing.T) {
 	})
 
 	t.Run("session mid-progress returns current item", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		sess := makeTestSession(testUserID, []string{"word-a", "word-b"})
 		seedSession(h, "active-session", sess, time.Now().Add(sessionTTL))
 
@@ -556,7 +577,7 @@ func TestHandler_GetCurrentItem(t *testing.T) {
 // TestHandler_AdvanceSession tests the AdvanceSession HTTP handler.
 func TestHandler_AdvanceSession(t *testing.T) {
 	t.Run("invalid JSON body returns 400", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		r := httptest.NewRequest(http.MethodPost, "/api/reviews/session/advance", strings.NewReader(`{bad`))
 		ctx := context.WithValue(r.Context(), userIDKey, testUserID)
 		req := r.WithContext(ctx)
@@ -568,7 +589,7 @@ func TestHandler_AdvanceSession(t *testing.T) {
 	})
 
 	t.Run("missing session_id returns 400", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		req := authenticatedRequest(http.MethodPost, "/api/reviews/session/advance", map[string]string{})
 		w := httptest.NewRecorder()
 		h.AdvanceSession(w, req)
@@ -578,7 +599,7 @@ func TestHandler_AdvanceSession(t *testing.T) {
 	})
 
 	t.Run("non-existent session returns 404", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		req := authenticatedRequest(http.MethodPost, "/api/reviews/session/advance", map[string]string{"session_id": "no-such"})
 		w := httptest.NewRecorder()
 		h.AdvanceSession(w, req)
@@ -588,7 +609,7 @@ func TestHandler_AdvanceSession(t *testing.T) {
 	})
 
 	t.Run("expired session returns 404", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		sess := makeTestSession(testUserID, []string{"w1"})
 		seedSession(h, "old-sess", sess, time.Now().Add(-time.Minute))
 		req := authenticatedRequest(http.MethodPost, "/api/reviews/session/advance", map[string]string{"session_id": "old-sess"})
@@ -600,7 +621,7 @@ func TestHandler_AdvanceSession(t *testing.T) {
 	})
 
 	t.Run("session owned by other user returns 403", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		sess := makeTestSession("other-user", []string{"w1"})
 		seedSession(h, "other-sess", sess, time.Now().Add(sessionTTL))
 		req := authenticatedRequest(http.MethodPost, "/api/reviews/session/advance", map[string]string{"session_id": "other-sess"})
@@ -612,7 +633,7 @@ func TestHandler_AdvanceSession(t *testing.T) {
 	})
 
 	t.Run("advance on non-last item returns done=false", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		sess := makeTestSession(testUserID, []string{"w1", "w2"})
 		seedSession(h, "two-item-sess", sess, time.Now().Add(sessionTTL))
 
@@ -636,7 +657,7 @@ func TestHandler_AdvanceSession(t *testing.T) {
 	})
 
 	t.Run("advance on last item returns done=true", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		sess := makeTestSession(testUserID, []string{"w1"})
 		seedSession(h, "one-item-sess", sess, time.Now().Add(sessionTTL))
 
@@ -660,7 +681,7 @@ func TestHandler_AdvanceSession(t *testing.T) {
 	})
 
 	t.Run("advance mutates the session index in the store", func(t *testing.T) {
-		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+		h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 		sess := makeTestSession(testUserID, []string{"w1", "w2", "w3"})
 		seedSession(h, "multi-sess", sess, time.Now().Add(sessionTTL))
 
@@ -684,7 +705,7 @@ func TestHandler_AdvanceSession(t *testing.T) {
 }
 
 func TestHandler_SessionStoreConcurrentAccess(t *testing.T) {
-	h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{})
+	h := NewHandler(&mockWordUseCase{}, &mockReviewUseCase{}, &mockSessionUseCase{}, &mockAuthUseCase{}, &mockCalendarStatsUseCase{}, &mockWordQuizUseCase{}, &mockTopicUseCase{}, &mockAdminUseCase{})
 	seedSession(h, "concurrent-session", makeTestSession(testUserID, []string{"w1", "w2", "w3"}), time.Now().Add(sessionTTL))
 
 	var wg sync.WaitGroup
