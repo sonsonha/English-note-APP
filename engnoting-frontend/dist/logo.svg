@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5254f7"/>
+      <stop offset="100%" stop-color="#9333ea"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Speech bubble with centered bookmark V-tail -->
+  <path
+    d="M24,8 H76 Q92,8 92,24 V52 Q92,68 76,68 H60 L50,86 L40,68 H24 Q8,68 8,52 V24 Q8,8 24,8 Z"
+    fill="url(#g)"/>
+
+  <!-- Subtle top shine -->
+  <path
+    d="M24,8 H76 Q92,8 92,24 V38 H8 V24 Q8,8 24,8 Z"
+    fill="url(#shine)"/>
+
+  <!-- Three vocabulary word lines -->
+  <rect x="19" y="21" width="62" height="7.5" rx="3.75" fill="white" opacity="0.93"/>
+  <rect x="19" y="36" width="46" height="7.5" rx="3.75" fill="white" opacity="0.93"/>
+  <rect x="19" y="51" width="54" height="7.5" rx="3.75" fill="white" opacity="0.93"/>
+</svg>

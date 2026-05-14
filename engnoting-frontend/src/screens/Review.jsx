@@ -30,20 +30,38 @@ function fmtISO(iso) {
 }
 
 const FORMAT_LABELS = {
-  mcq: 'Multiple choice',
-  match: 'Matching',
-  typing: 'Typing',
-  fill_blank: 'Fill in the blank',
+  word_meaning_mcq: 'Word → Meaning',
+  context_fill_mcq: 'Fill the blank',
+  phrase_match:     'Phrase match',
+  reverse_mcq:      'Reverse recall',
+  recall_typing:    'Active recall',
+  context_typing:   'Context typing',
+  // legacy types
+  mcq:        'Multiple choice',
+  match:      'Matching',
+  typing:     'Typing',
+  fill_blank:  'Fill in the blank',
 };
 
-// ── MCQ ──────────────────────────────────────────────────────────────────────
+// Which quiz types show word_text prominently (others show question prominently)
+const WORD_HEADER_TYPES = new Set(['word_meaning_mcq', 'phrase_match', 'mcq']);
+// Which quiz types are MCQ (have choices)
+const MCQ_TYPES     = new Set(['word_meaning_mcq', 'context_fill_mcq', 'phrase_match', 'reverse_mcq', 'mcq', 'match']);
+// Which quiz types are typing with a blank sentence
+const FILL_TYPES    = new Set(['context_typing', 'fill_blank']);
+// Which quiz types are free-typing
+const TYPING_TYPES  = new Set(['recall_typing', 'typing']);
+
+// ── MCQ (all multiple-choice quiz types) ─────────────────────────────────────
 function MCQ({ item, onAnswer }) {
   const { quiz, word_text } = item;
+  const format = item.review_type || quiz?.quiz_type || '';
   const [picked, setPicked] = useState(null);
   const [reveal, setReveal] = useState(false);
 
-  const choices = quiz?.choices ?? [];
+  const choices     = quiz?.choices ?? [];
   const correctAnswer = quiz?.answer ?? '';
+  const showWordHeader = WORD_HEADER_TYPES.has(format);
 
   const select = (i) => {
     if (reveal) return;
@@ -56,17 +74,27 @@ function MCQ({ item, onAnswer }) {
   return (
     <>
       <div className="row" style={{ gap: 10, marginBottom: 18 }}>
-        <span className="tag tag-pos">{FORMAT_LABELS.mcq}</span>
+        <span className="tag tag-pos">{FORMAT_LABELS[format] ?? format}</span>
         <span className="muted" style={{ fontSize: 14, marginLeft: 'auto', fontStyle: 'italic' }}>
-          choose the correct meaning
+          {WORD_HEADER_TYPES.has(format) ? 'choose the correct meaning' : 'choose the correct word'}
         </span>
       </div>
-      <h1 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: 64, letterSpacing: '-0.025em' }}>
-        {word_text}
-      </h1>
-      {quiz?.question && (
-        <div className="muted" style={{ fontSize: 14, marginTop: 6 }}>{quiz.question}</div>
+
+      {showWordHeader ? (
+        <>
+          <h1 style={{ fontFamily: 'var(--display)', fontWeight: 800, fontSize: 60, letterSpacing: '-0.025em', lineHeight: 1.1 }}>
+            {word_text}
+          </h1>
+          {quiz?.question && (
+            <div className="muted" style={{ fontSize: 14, marginTop: 8 }}>{quiz.question}</div>
+          )}
+        </>
+      ) : (
+        <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 26, lineHeight: 1.35, letterSpacing: '-0.015em', marginTop: 8, marginBottom: 4 }}>
+          {quiz?.question}
+        </div>
       )}
+
       <div className="col" style={{ marginTop: 24, gap: 10 }}>
         {choices.map((c, i) => {
           const isCorrect = c === correctAnswer;
@@ -86,75 +114,17 @@ function MCQ({ item, onAnswer }) {
   );
 }
 
-// ── Typing ────────────────────────────────────────────────────────────────────
-function Typing({ item, onAnswer }) {
+// ── Recall typing (given meaning, type the word) ──────────────────────────────
+function RecallTyping({ item, onAnswer }) {
   const { quiz, word_text } = item;
+  const format = item.review_type || quiz?.quiz_type || '';
   const [val, setVal] = useState('');
   const [reveal, setReveal] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => { ref.current?.focus(); }, []);
 
-  const submit = () => {
-    if (reveal || !val.trim()) return;
-    setReveal(true);
-    const correct = val.trim().toLowerCase() === (quiz?.answer ?? word_text).toLowerCase();
-    setTimeout(() => onAnswer(correct), 900);
-  };
-
-  const isCorrect = val.trim().toLowerCase() === (quiz?.answer ?? word_text).toLowerCase();
-
-  return (
-    <>
-      <div className="row" style={{ gap: 10, marginBottom: 18 }}>
-        <span className="tag tag-pos">{FORMAT_LABELS.typing}</span>
-        <span className="muted" style={{ fontSize: 14, marginLeft: 'auto', fontStyle: 'italic' }}>type the word</span>
-      </div>
-      <div className="kicker">Question</div>
-      <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 26, lineHeight: 1.25, letterSpacing: '-0.015em', marginTop: 8 }}>
-        {quiz?.question ?? `What word means this?`}
-      </div>
-      <div style={{ marginTop: 24 }}>
-        <input
-          ref={ref}
-          className="input input-lg"
-          placeholder="Type the word…"
-          value={val}
-          onChange={(e) => setVal(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
-          disabled={reveal}
-          style={reveal ? (isCorrect
-            ? { borderColor: 'var(--leaf)', background: 'oklch(0.96 0.04 145)' }
-            : { borderColor: 'var(--rose)', background: 'oklch(0.96 0.04 25)' }) : {}}
-        />
-        {reveal && !isCorrect && (
-          <div className="muted" style={{ marginTop: 10, fontSize: 14 }}>
-            The answer was <b style={{ fontFamily: 'var(--display)' }}>{quiz?.answer ?? word_text}</b>.
-          </div>
-        )}
-      </div>
-      <div className="row" style={{ marginTop: 'auto', paddingTop: 24, justifyContent: 'flex-end' }}>
-        <button className="btn btn-primary" onClick={submit} disabled={!val.trim() || reveal}>
-          Check <Icon name="check" size={14} />
-        </button>
-      </div>
-    </>
-  );
-}
-
-// ── Fill in the blank ─────────────────────────────────────────────────────────
-function FillBlank({ item, onAnswer }) {
-  const { quiz, word_text } = item;
-  const [val, setVal] = useState('');
-  const [reveal, setReveal] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => { ref.current?.focus(); }, []);
-
-  const sentence = quiz?.question ?? `Fill in the blank: _____.`;
   const answer = quiz?.answer ?? word_text;
-  const re = new RegExp(`(${answer})`, 'i');
-  const parts = sentence.split(re);
 
   const submit = () => {
     if (reveal || !val.trim()) return;
@@ -168,31 +138,99 @@ function FillBlank({ item, onAnswer }) {
   return (
     <>
       <div className="row" style={{ gap: 10, marginBottom: 18 }}>
-        <span className="tag tag-pos">{FORMAT_LABELS.fill_blank}</span>
+        <span className="tag tag-pos">{FORMAT_LABELS[format] ?? format}</span>
+        <span className="muted" style={{ fontSize: 14, marginLeft: 'auto', fontStyle: 'italic' }}>type the English word</span>
+      </div>
+      <div className="kicker">Vietnamese meaning</div>
+      <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 30, lineHeight: 1.25, letterSpacing: '-0.015em', marginTop: 8 }}>
+        {quiz?.question ?? word_text}
+      </div>
+      <div style={{ marginTop: 24 }}>
+        <input
+          ref={ref}
+          className="input input-lg"
+          placeholder="Type the English word…"
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && submit()}
+          disabled={reveal}
+          style={reveal ? (isCorrect
+            ? { borderColor: 'var(--leaf)', background: 'oklch(0.96 0.04 145)' }
+            : { borderColor: 'var(--rose)', background: 'oklch(0.96 0.04 25)' }) : {}}
+        />
+        {reveal && !isCorrect && (
+          <div className="muted" style={{ marginTop: 10, fontSize: 14 }}>
+            The answer was <b style={{ fontFamily: 'var(--display)' }}>{answer}</b>.
+          </div>
+        )}
+      </div>
+      <div className="row" style={{ marginTop: 'auto', paddingTop: 24, justifyContent: 'flex-end' }}>
+        <button className="btn btn-primary" onClick={submit} disabled={!val.trim() || reveal}>
+          Check <Icon name="check" size={14} />
+        </button>
+      </div>
+    </>
+  );
+}
+
+// ── Context typing (sentence with blank, type the word) ───────────────────────
+function ContextTyping({ item, onAnswer }) {
+  const { quiz, word_text } = item;
+  const format = item.review_type || quiz?.quiz_type || '';
+  const [val, setVal] = useState('');
+  const [reveal, setReveal] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => { ref.current?.focus(); }, []);
+
+  const answer = quiz?.answer ?? word_text;
+  const sentence = quiz?.question ?? `Fill in the blank: _____.`;
+
+  // Split on ___ placeholder
+  const parts = sentence.split('___');
+
+  const submit = () => {
+    if (reveal || !val.trim()) return;
+    setReveal(true);
+    const correct = val.trim().toLowerCase() === answer.toLowerCase();
+    setTimeout(() => onAnswer(correct), 900);
+  };
+
+  const isCorrect = val.trim().toLowerCase() === answer.toLowerCase();
+
+  return (
+    <>
+      <div className="row" style={{ gap: 10, marginBottom: 18 }}>
+        <span className="tag tag-pos">{FORMAT_LABELS[format] ?? format}</span>
         <span className="muted" style={{ fontSize: 14, marginLeft: 'auto', fontStyle: 'italic' }}>fill in the blank</span>
       </div>
       <div className="kicker">Complete the sentence</div>
-      <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 28, lineHeight: 1.4, letterSpacing: '-0.01em', marginTop: 12 }}>
-        {parts.map((p, i) =>
-          re.test(p) ? (
-            <input
-              key={i} ref={ref}
-              className="input"
-              value={val}
-              onChange={(e) => setVal(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && submit()}
-              disabled={reveal}
-              placeholder="_____"
-              style={{
-                display: 'inline-block', width: Math.max(120, answer.length * 16),
-                fontFamily: 'var(--display)', fontSize: 26, padding: '4px 10px', borderRadius: 8,
-                ...(reveal ? (isCorrect
-                  ? { borderColor: 'var(--leaf)', background: 'oklch(0.96 0.04 145)' }
-                  : { borderColor: 'var(--rose)', background: 'oklch(0.96 0.04 25)' }) : {}),
-              }}
-            />
-          ) : <span key={i}>{p}</span>
-        )}
+      <div style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: 26, lineHeight: 1.5, letterSpacing: '-0.01em', marginTop: 12 }}>
+        {parts.map((part, i) => (
+          <span key={i}>
+            {part}
+            {i < parts.length - 1 && (
+              <input
+                ref={i === 0 ? ref : undefined}
+                className="input"
+                value={val}
+                onChange={(e) => setVal(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submit()}
+                disabled={reveal}
+                placeholder="_____"
+                style={{
+                  display: 'inline-block',
+                  width: Math.max(120, answer.length * 16),
+                  fontFamily: 'var(--display)', fontSize: 24,
+                  padding: '3px 10px', borderRadius: 8, margin: '0 4px',
+                  ...(reveal ? (isCorrect
+                    ? { borderColor: 'var(--leaf)', background: 'oklch(0.96 0.04 145)' }
+                    : { borderColor: 'var(--rose)', background: 'oklch(0.96 0.04 25)' }) : {}),
+                }}
+              />
+            )}
+          </span>
+        ))}
       </div>
       {reveal && !isCorrect && (
         <div className="muted" style={{ marginTop: 18, fontSize: 14 }}>
@@ -620,6 +658,7 @@ export default function Review({ setScreen, openWord, finishSession, reviewConfi
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const [showConfig, setShowConfig] = useState(true);
+  const answering = useRef(false);
 
   const launch = ({ limit, from, to, topic }) => {
     setShowConfig(false);
@@ -643,8 +682,9 @@ export default function Review({ setScreen, openWord, finishSession, reviewConfi
   const pct = total ? (idx / total) * 100 : 0;
 
   const handleAnswer = async (correct) => {
-    if (!currentItem || !sessionId) return;
-    const reviewType = currentItem.review_type || currentItem.quiz?.quiz_type || 'mcq';
+    if (!currentItem || !sessionId || answering.current) return;
+    answering.current = true;
+    const reviewType = currentItem.review_type || currentItem.quiz?.quiz_type || 'word_meaning_mcq';
 
     setAnimOut(correct ? 'right' : 'left');
 
@@ -662,6 +702,7 @@ export default function Review({ setScreen, openWord, finishSession, reviewConfi
 
     setTimeout(async () => {
       setAnimOut(null);
+      answering.current = false;
       try {
         const next = await getCurrentItem(sessionId);
         if (next?.done) {
@@ -680,7 +721,7 @@ export default function Review({ setScreen, openWord, finishSession, reviewConfi
   };
 
   const handleSkip = async () => {
-    if (!sessionId) return;
+    if (!sessionId || answering.current) return;
     try { await advanceSession(sessionId); } catch {}
     if (idx + 1 >= total) {
       finishSession(results);
@@ -688,6 +729,19 @@ export default function Review({ setScreen, openWord, finishSession, reviewConfi
       setIdx((i) => i + 1);
     }
   };
+
+  // Keyboard shortcuts: ← = didn't know, → = got it
+  useEffect(() => {
+    if (showConfig || !currentItem) return;
+    const onKey = (e) => {
+      // Don't trigger when focused in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowLeft')  handleAnswer(false);
+      if (e.key === 'ArrowRight') handleAnswer(true);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showConfig, currentItem, idx, sessionId]);
 
   if (showConfig) {
     return (
@@ -742,8 +796,7 @@ export default function Review({ setScreen, openWord, finishSession, reviewConfi
     );
   }
 
-  const format = currentItem.review_type || currentItem.quiz?.quiz_type || 'mcq';
-  const hasChoices = format === 'mcq' && (currentItem.quiz?.choices?.length ?? 0) > 0;
+  const format = currentItem.review_type || currentItem.quiz?.quiz_type || 'word_meaning_mcq';
 
   return (
     <div className="canvas fade-in" style={{ maxWidth: 760 }}>
@@ -763,18 +816,28 @@ export default function Review({ setScreen, openWord, finishSession, reviewConfi
       </div>
 
       <div className={'review-card' + (animOut ? ' swipe-' + animOut : '')} key={idx}>
-        {format === 'mcq' && hasChoices && <MCQ item={currentItem} onAnswer={handleAnswer} />}
-        {(format === 'typing' || (format === 'mcq' && !hasChoices)) && (
-          <Typing item={currentItem} onAnswer={handleAnswer} />
-        )}
-        {format === 'fill_blank' && <FillBlank item={currentItem} onAnswer={handleAnswer} />}
-        {format === 'match' && <Typing item={currentItem} onAnswer={handleAnswer} />}
+        {MCQ_TYPES.has(format) && <MCQ item={currentItem} onAnswer={handleAnswer} />}
+        {TYPING_TYPES.has(format) && <RecallTyping item={currentItem} onAnswer={handleAnswer} />}
+        {FILL_TYPES.has(format) && <ContextTyping item={currentItem} onAnswer={handleAnswer} />}
       </div>
 
-      <div className="row between" style={{ marginTop: 18, color: 'var(--ink-mute)', fontSize: 12.5 }}>
-        <div className="row" style={{ gap: 14 }}>
-          <span><span className="kbd">←</span> didn't know</span>
-          <span><span className="kbd">→</span> got it</span>
+      {/* Action bar: didn't know / got it buttons + skip / see card */}
+      <div className="row between" style={{ marginTop: 18 }}>
+        <div className="row" style={{ gap: 8 }}>
+          <button
+            className="btn btn-ghost"
+            style={{ gap: 6, color: 'var(--rose)', borderColor: 'var(--rose-soft)', fontSize: 13 }}
+            onClick={() => handleAnswer(false)}
+          >
+            <span className="kbd">←</span> didn't know
+          </button>
+          <button
+            className="btn btn-ghost"
+            style={{ gap: 6, color: 'var(--leaf)', borderColor: 'var(--mint-soft)', fontSize: 13 }}
+            onClick={() => handleAnswer(true)}
+          >
+            <span className="kbd">→</span> got it
+          </button>
         </div>
         <div className="row" style={{ gap: 10 }}>
           <button className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 13 }} onClick={handleSkip}>
