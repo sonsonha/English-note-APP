@@ -37,6 +37,7 @@ type CreateWordInput struct {
 	UserID  string
 	Text    string
 	Context string
+	Source  string
 }
 
 // CreateWordOutput represents output from creating a word
@@ -70,6 +71,9 @@ func (uc *WordUseCase) CreateWord(ctx context.Context, input CreateWordInput) (*
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}
+	if input.Source != "" {
+		word.Source = &input.Source
+	}
 
 	if err := uc.wordRepo.Create(ctx, word); err != nil {
 		return nil, err
@@ -83,7 +87,7 @@ func (uc *WordUseCase) CreateWord(ctx context.Context, input CreateWordInput) (*
 	}
 
 	go uc.generateAIExplanation(wordID, text, ctxTrimmed)
-	go uc.generateInitialQuizzes(wordID, text, ctxTrimmed)
+	go uc.generateAllQuizzes(wordID, text, ctxTrimmed)
 
 	return &CreateWordOutput{WordID: wordID}, nil
 }
@@ -116,12 +120,12 @@ func (uc *WordUseCase) generateAIExplanation(wordID, word, wordContext string) {
 	_ = uc.wordRepo.StoreAIData(ctx, wordID, aiData)
 }
 
-func (uc *WordUseCase) generateInitialQuizzes(wordID, word, wordContext string) {
-	quizzes, err := uc.aiSvc.GenerateInitialQuizzes(word, wordContext)
+func (uc *WordUseCase) generateAllQuizzes(wordID, word, wordContext string) {
+	quizzes, err := uc.aiSvc.GenerateAllQuizzes(word, wordContext)
 	if err != nil {
-		log.Printf("[WARN] generateInitialQuizzes: failed for word %q: %v", word, err)
-		if enqErr := uc.jobRepo.Enqueue(context.Background(), wordID, word, wordContext, domain.AIJobTypeInitialQuizzes); enqErr != nil {
-			log.Printf("[WARN] generateInitialQuizzes: failed to enqueue retry: %v", enqErr)
+		log.Printf("[WARN] generateAllQuizzes: failed for word %q: %v", word, err)
+		if enqErr := uc.jobRepo.Enqueue(context.Background(), wordID, word, wordContext, domain.AIJobTypeGenerateQuizzes); enqErr != nil {
+			log.Printf("[WARN] generateAllQuizzes: failed to enqueue retry: %v", enqErr)
 		}
 		return
 	}
@@ -142,7 +146,7 @@ func (uc *WordUseCase) generateInitialQuizzes(wordID, word, wordContext string) 
 		}
 	}
 	if err := uc.quizRepo.StoreQuizzes(ctx, wq); err != nil {
-		log.Printf("[WARN] generateInitialQuizzes: failed to store quizzes for word %q: %v", word, err)
+		log.Printf("[WARN] generateAllQuizzes: failed to store quizzes for word %q: %v", word, err)
 	}
 }
 
@@ -188,9 +192,10 @@ func (uc *WordUseCase) RegenerateWord(ctx context.Context, input RegenerateWordI
 type BackfillAIDataOutput struct {
 	EnqueuedVIMeaning int
 	EnqueuedQuizzes   int
+	EnqueuedTopics    int
 }
 
-// BackfillAIData enqueues AI jobs for words missing vi_meaning or quizzes.
+// BackfillAIData enqueues AI jobs for words missing vi_meaning, quizzes, or topic.
 func (uc *WordUseCase) BackfillAIData(ctx context.Context) (*BackfillAIDataOutput, error) {
 	const batchSize = 200
 	out := &BackfillAIDataOutput{}
@@ -220,11 +225,27 @@ func (uc *WordUseCase) BackfillAIData(ctx context.Context) (*BackfillAIDataOutpu
 		if w.Context != nil {
 			wordCtx = *w.Context
 		}
-		if enqErr := uc.jobRepo.Enqueue(ctx, w.ID, w.Text, wordCtx, domain.AIJobTypeInitialQuizzes); enqErr != nil {
+		if enqErr := uc.jobRepo.Enqueue(ctx, w.ID, w.Text, wordCtx, domain.AIJobTypeGenerateQuizzes); enqErr != nil {
 			log.Printf("[WARN] BackfillAIData: failed to enqueue quizzes job for word %q: %v", w.Text, enqErr)
 			continue
 		}
 		out.EnqueuedQuizzes++
+	}
+
+	topicWords, err := uc.wordRepo.ListMissingTopic(ctx, batchSize)
+	if err != nil {
+		return nil, err
+	}
+	for _, w := range topicWords {
+		wordCtx := ""
+		if w.Context != nil {
+			wordCtx = *w.Context
+		}
+		if enqErr := uc.jobRepo.Enqueue(ctx, w.ID, w.Text, wordCtx, domain.AIJobTypeBackfillTopic); enqErr != nil {
+			log.Printf("[WARN] BackfillAIData: failed to enqueue topic job for word %q: %v", w.Text, enqErr)
+			continue
+		}
+		out.EnqueuedTopics++
 	}
 
 	return out, nil
@@ -330,4 +351,24 @@ func (uc *WordUseCase) ListWords(ctx context.Context, input ListWordsInput) (*Li
 		Words: words,
 		Total: total,
 	}, nil
+}
+
+// GetWordsBySourceInput represents input for getting words by source URL
+type GetWordsBySourceInput struct {
+	UserID string
+	Source string
+}
+
+// GetWordsBySourceOutput represents output from getting words by source URL
+type GetWordsBySourceOutput struct {
+	Words []*domain.Word
+}
+
+// GetWordsBySource retrieves all words saved from a specific page URL
+func (uc *WordUseCase) GetWordsBySource(ctx context.Context, input GetWordsBySourceInput) (*GetWordsBySourceOutput, error) {
+	words, err := uc.wordRepo.ListBySource(ctx, input.UserID, input.Source)
+	if err != nil {
+		return nil, err
+	}
+	return &GetWordsBySourceOutput{Words: words}, nil
 }

@@ -63,6 +63,10 @@ func (m *mockWordUseCase) BackfillAIData(_ context.Context) (*usecase.BackfillAI
 	return &usecase.BackfillAIDataOutput{}, nil
 }
 
+func (m *mockWordUseCase) GetWordsBySource(_ context.Context, _ usecase.GetWordsBySourceInput) (*usecase.GetWordsBySourceOutput, error) {
+	return &usecase.GetWordsBySourceOutput{Words: nil}, nil
+}
+
 // authenticatedRequest creates a request with a valid Bearer UUID in the Authorization header.
 func authenticatedRequest(method, target string, body interface{}) *http.Request {
 	var bodyReader *bytes.Reader

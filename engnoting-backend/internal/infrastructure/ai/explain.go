@@ -58,22 +58,13 @@ func ExplainWordSafe(client Client, word, context string) (*domain.AIExplanation
 	}, nil
 }
 
-// GenerateInitialQuizzesSafe generates mcq and match quizzes for a word.
-func GenerateInitialQuizzesSafe(client Client, word, context string) ([]domain.AIQuiz, error) {
-	return generateQuizzesSafe(client, systemPromptInitialQuiz, word, context)
-}
-
-// GenerateAdvancedQuizzesSafe generates fill_blank and typing quizzes for a word.
-func GenerateAdvancedQuizzesSafe(client Client, word, context string) ([]domain.AIQuiz, error) {
-	return generateQuizzesSafe(client, systemPromptAdvancedQuiz, word, context)
-}
-
-func generateQuizzesSafe(client Client, sysPrompt, word, context string) ([]domain.AIQuiz, error) {
+// GenerateAllQuizzesSafe generates all 6 quiz levels for a word in a single AI call.
+func GenerateAllQuizzesSafe(client Client, word, context string) ([]domain.AIQuiz, error) {
 	if client == nil {
 		return nil, fmt.Errorf("ai client is nil")
 	}
 
-	content, err := client.GenerateQuizzes(sysPrompt, buildUserPromptQuiz(word, context))
+	content, err := client.GenerateQuizzes(systemPromptAllQuizzes, buildUserPromptQuiz(word, context))
 	if err != nil {
 		return nil, err
 	}

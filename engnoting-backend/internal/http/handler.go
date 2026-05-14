@@ -17,6 +17,7 @@ type WordUseCaser interface {
 	GetWord(ctx context.Context, input usecase.GetWordInput) (*usecase.GetWordOutput, error)
 	RegenerateWord(ctx context.Context, input usecase.RegenerateWordInput) (*usecase.RegenerateWordOutput, error)
 	ListWords(ctx context.Context, input usecase.ListWordsInput) (*usecase.ListWordsOutput, error)
+	GetWordsBySource(ctx context.Context, input usecase.GetWordsBySourceInput) (*usecase.GetWordsBySourceOutput, error)
 	BackfillAIData(ctx context.Context) (*usecase.BackfillAIDataOutput, error)
 }
 

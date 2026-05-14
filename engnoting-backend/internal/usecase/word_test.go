@@ -72,7 +72,17 @@ func (m *mockWordRepo) ListMissingQuizzes(_ context.Context, _ int) ([]*domain.W
 	return nil, nil
 }
 
+func (m *mockWordRepo) UpdateTopic(_ context.Context, _, _ string) error { return nil }
+
+func (m *mockWordRepo) ListMissingTopic(_ context.Context, _ int) ([]*domain.Word, error) {
+	return nil, nil
+}
+
 func (m *mockWordRepo) ListByTopic(_ context.Context, _, _ string, _, _ int) ([]*domain.Word, error) {
+	return nil, nil
+}
+
+func (m *mockWordRepo) ListBySource(_ context.Context, _, _ string) ([]*domain.Word, error) {
 	return nil, nil
 }
 
@@ -94,22 +104,15 @@ func (m *mockAIService) ExplainWord(word, ctx string) (*domain.AIExplanation, er
 	return &domain.AIExplanation{Definition: "def", ExampleGood: "ex"}, nil
 }
 
-func (m *mockAIService) GenerateInitialQuizzes(word, ctx string) ([]domain.AIQuiz, error) {
-	return nil, nil
-}
-
-func (m *mockAIService) GenerateAdvancedQuizzes(word, ctx string) ([]domain.AIQuiz, error) {
+func (m *mockAIService) GenerateAllQuizzes(word, ctx string) ([]domain.AIQuiz, error) {
 	return nil, nil
 }
 
 type mockQuizRepo struct{}
 
-func (m *mockQuizRepo) StoreQuizzes(_ context.Context, _ []domain.WordQuiz) error   { return nil }
+func (m *mockQuizRepo) StoreQuizzes(_ context.Context, _ []domain.WordQuiz) error { return nil }
 func (m *mockQuizRepo) GetByWordID(_ context.Context, _ string) ([]domain.WordQuiz, error) {
 	return nil, nil
-}
-func (m *mockQuizRepo) HasAdvancedQuizzes(_ context.Context, _ string) (bool, error) {
-	return false, nil
 }
 
 type mockJobRepo struct{}

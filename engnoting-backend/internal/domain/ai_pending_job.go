@@ -7,9 +7,9 @@ import (
 
 const (
 	AIJobTypeExplainWord       = "explain_word"
-	AIJobTypeInitialQuizzes    = "initial_quizzes"
-	AIJobTypeAdvancedQuizzes   = "advanced_quizzes"
+	AIJobTypeGenerateQuizzes   = "generate_quizzes"
 	AIJobTypeBackfillVIMeaning = "backfill_vi_meaning"
+	AIJobTypeBackfillTopic     = "backfill_topic"
 
 	AIJobStatusPending = "pending"
 	AIJobStatusDone    = "done"

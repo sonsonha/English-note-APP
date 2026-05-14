@@ -1,6 +1,10 @@
 package ai
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/sonsonha/eng-noting/internal/domain"
+)
 
 func validateExplanation(exp explanation) error {
 	if exp.Definition == "" {
@@ -23,10 +27,17 @@ func validateQuiz(q quiz) error {
 		return fmt.Errorf("missing answer")
 	}
 	switch q.QuizType {
-	case "mcq", "match":
+	case domain.QuizTypeWordMeaningMCQ,
+		domain.QuizTypeContextFillMCQ,
+		domain.QuizTypePhraseMatch,
+		domain.QuizTypeReverseMCQ:
 		if len(q.Choices) < 2 {
-			return fmt.Errorf("mcq/match requires at least 2 choices")
+			return fmt.Errorf("%s requires at least 2 choices", q.QuizType)
 		}
+	case domain.QuizTypeRecallTyping, domain.QuizTypeContextTyping:
+		// typing quizzes have no choices
+	default:
+		return fmt.Errorf("unknown quiz_type: %s", q.QuizType)
 	}
 	return nil
 }

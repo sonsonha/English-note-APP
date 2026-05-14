@@ -41,31 +41,40 @@ type ReviewContext struct {
 	LastReviewType string
 }
 
-// SelectType determines the review format based on mastery.
+// SelectType determines the quiz level based on accuracy.
+// Levels progress from recognition (L1) to active production (L6).
 func SelectType(ctx ReviewContext) string {
 	switch {
-	case ctx.TotalReviews == 0 || ctx.AccuracyRate < 0.4:
-		return "mcq"
-	case ctx.AccuracyRate < 0.7:
-		return "match"
-	case ctx.AccuracyRate >= 0.8 && ctx.TotalReviews >= 5:
-		return "fill_blank"
+	case ctx.TotalReviews == 0 || ctx.AccuracyRate < 0.50:
+		return QuizTypeWordMeaningMCQ
+	case ctx.AccuracyRate < 0.62:
+		return QuizTypeContextFillMCQ
+	case ctx.AccuracyRate < 0.72:
+		return QuizTypePhraseMatch
+	case ctx.AccuracyRate < 0.82:
+		return QuizTypeReverseMCQ
+	case ctx.AccuracyRate < 0.92:
+		return QuizTypeRecallTyping
 	default:
-		return "typing"
+		return QuizTypeContextTyping
 	}
 }
 
 // Reason provides a short explanation for the selected review type.
 func Reason(ctx ReviewContext, reviewType string) string {
 	switch reviewType {
-	case "mcq":
-		return "Low accuracy; use multiple choice to reinforce basics"
-	case "match":
-		return "Medium accuracy; matching helps recall and associations"
-	case "fill_blank":
-		return "High mastery; fill-in-blank tests precise recall"
-	case "typing":
-		return "High accuracy; typing strengthens long-term retention"
+	case QuizTypeWordMeaningMCQ:
+		return "Starting with recognition: choose the Vietnamese meaning"
+	case QuizTypeContextFillMCQ:
+		return "Building context: choose the word that fits the sentence"
+	case QuizTypePhraseMatch:
+		return "Deepening understanding: match the best phrase for this word"
+	case QuizTypeReverseMCQ:
+		return "Reversing direction: choose the English word from the Vietnamese meaning"
+	case QuizTypeRecallTyping:
+		return "Active recall: type the English word from its Vietnamese meaning"
+	case QuizTypeContextTyping:
+		return "Full production: type the word into the sentence context"
 	default:
 		return "Default review format"
 	}

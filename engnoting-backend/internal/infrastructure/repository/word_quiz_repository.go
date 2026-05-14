@@ -71,18 +71,6 @@ func (r *WordQuizRepository) GetByWordID(ctx context.Context, wordID string) ([]
 	return quizzes, rows.Err()
 }
 
-func (r *WordQuizRepository) HasAdvancedQuizzes(ctx context.Context, wordID string) (bool, error) {
-	var count int
-	err := r.db.QueryRowContext(ctx, `
-		SELECT COUNT(*) FROM word_quizzes
-		WHERE word_id = $1 AND quiz_type IN ('fill_blank', 'typing')
-	`, wordID).Scan(&count)
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
 func aiQuizzesToWordQuizzes(wordID string, quizzes []domain.AIQuiz) []domain.WordQuiz {
 	now := time.Now()
 	result := make([]domain.WordQuiz, len(quizzes))

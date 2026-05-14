@@ -21,6 +21,5 @@ type AIQuiz struct {
 // AIService defines behavior for generating AI content.
 type AIService interface {
 	ExplainWord(word, context string) (*AIExplanation, error)
-	GenerateInitialQuizzes(word, context string) ([]AIQuiz, error)
-	GenerateAdvancedQuizzes(word, context string) ([]AIQuiz, error)
+	GenerateAllQuizzes(word, context string) ([]AIQuiz, error)
 }

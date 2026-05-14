@@ -20,66 +20,63 @@ func buildUserPrompt(word, context string) string {
 	return fmt.Sprintf("Word: %s\nContext: %s\nProvide the JSON response.", word, context)
 }
 
-// systemPromptInitialQuiz generates MCQ and match quizzes optimised for first exposure.
-// Design principles applied:
-//   - MCQ: semantic distractors from the same category force deeper processing than random wrong answers.
-//   - Match: contextual phrase matching builds associative memory, stronger than bare definition matching.
-//   - Questions are framed around real usage, not dictionary definitions.
-const systemPromptInitialQuiz = `You are a vocabulary learning specialist. Your quizzes must maximise long-term retention using evidence-based techniques.
+// systemPromptAllQuizzes generates all 6 quiz levels for a word in a single call.
+// Level progression (recognition → production):
+//   L1 word_meaning_mcq  — given the English word, choose its Vietnamese meaning
+//   L2 context_fill_mcq  — given a sentence with a blank, choose the correct English word
+//   L3 phrase_match       — choose the phrase that best captures the word's meaning
+//   L4 reverse_mcq        — given the Vietnamese meaning, choose the correct English word
+//   L5 recall_typing      — given the Vietnamese meaning, type the English word
+//   L6 context_typing     — given a sentence with a blank, type the English word
+const systemPromptAllQuizzes = `You are a vocabulary learning specialist. Generate exactly 6 quiz questions for the target word — one of each type below.
 
-Return a JSON object with key "quizzes" containing an array — no extra text outside JSON.
-Generate exactly 2 quizzes: one "mcq" and one "match".
+Return a JSON object with key "quizzes" containing an array of exactly 6 objects — no extra text outside JSON.
 
-MCQ rules:
-- Write the question as a natural sentence that uses the word in context, then ask what the word means in that sentence.
-- Provide exactly 4 choices.
-- The 3 wrong choices must be plausible: pick words from the SAME semantic category or part of speech as the target word. A learner who knows similar vocabulary should have to think carefully — never use obviously unrelated words.
-- The correct answer must clearly fit the sentence; the wrong answers must not.
+--- QUIZ TYPES ---
 
-MATCH rules:
-- Question: "Which phrase best captures the meaning of [word]?"
-- Provide exactly 4 short contextual phrases (3–6 words each). One correctly captures the word; the other three are plausible but subtly wrong — they should describe related but distinct concepts.
-- Phrases should sound like natural language, not textbook definitions.
+1. "word_meaning_mcq"
+   - question: "What does '[word]' mean?" (replace [word] with the actual target word)
+   - choices: 4 Vietnamese translations — 1 correct short meaning (1–4 words), 3 plausible but wrong Vietnamese words/phrases from the same semantic field
+   - answer: the correct Vietnamese meaning (must match one choice exactly)
 
-Output format for each quiz:
+2. "context_fill_mcq"
+   - question: A vivid, natural English sentence (12–20 words) that uses the word, with ___ replacing it
+   - choices: 4 English words — the target word + 3 semantically similar distractors of the same part of speech; the wrong ones must NOT fit the sentence naturally
+   - answer: the target word (must match one choice exactly)
+
+3. "phrase_match"
+   - question: "Which phrase best captures the meaning of '[word]'?" (replace [word] with the actual target word)
+   - choices: 4 natural English phrases (3–6 words each) — 1 correct, 3 plausible but subtly wrong (they describe related but distinct concepts)
+   - answer: the correct phrase (must match one choice exactly)
+
+4. "reverse_mcq"
+   - question: The Vietnamese meaning of the word (same text as quiz 1's correct answer)
+   - choices: 4 English words — the target word + 3 semantically related English distractors
+   - answer: the target word (must match one choice exactly)
+
+5. "recall_typing"
+   - question: The Vietnamese meaning of the word (same text as quiz 1's correct answer)
+   - choices: [] (empty array)
+   - answer: the target word
+
+6. "context_typing"
+   - question: A DIFFERENT vivid sentence from quiz 2 (12–20 words), with ___ replacing the target word; use a different context or situation so both sentences provide learning value
+   - choices: [] (empty array)
+   - answer: the target word
+
+--- GUIDELINES ---
+- The Vietnamese meaning must be accurate and consistent across quizzes 1, 4, and 5.
+- All MCQ distractors must come from the same semantic category or part of speech — they must make a thoughtful learner pause.
+- Sentences (quizzes 2 and 6) must sound like authentic English speech or writing, not textbook examples.
+- The answer field for MCQ quizzes must exactly match one of the choices (same capitalisation and spelling).
+
+Output format for each quiz object:
 {
-  "quiz_type": "mcq" | "match",
+  "quiz_type": "...",
   "question": "...",
   "choices": ["...", "...", "...", "..."],
   "answer": "..."
-}
-The answer must be exactly one of the choices.`
-
-// systemPromptAdvancedQuiz generates fill_blank and typing quizzes for learners with established recognition.
-// Design principles applied:
-//   - Fill-blank: cloze sentences using content-word deletion with rich semantic context activate
-//     comprehension and discourse competence simultaneously (stronger recall than definition recall).
-//   - Typing: scenario-based prompts trigger elaborative encoding — the learner must reconstruct
-//     meaning from an evocative situation rather than a dry description.
-const systemPromptAdvancedQuiz = `You are a vocabulary learning specialist. Your quizzes must push learners from recognition to deep, durable recall.
-
-Return a JSON object with key "quizzes" containing an array — no extra text outside JSON.
-Generate exactly 2 quizzes: one "fill_blank" and one "typing".
-
-FILL_BLANK rules:
-- Write a vivid, realistic sentence (15–25 words) with ___ where the word belongs.
-- The surrounding context must hint at the word's semantic field without naming it or providing a direct synonym — the learner should be able to retrieve the word through meaning, not pattern-match a synonym.
-- The sentence must sound like authentic speech or writing, not a textbook example.
-- The blank must fall in a position where only the target word (or a very close synonym) fits naturally.
-
-TYPING rules:
-- Describe a real-world scenario, situation, or feeling that the word perfectly captures — do NOT ask "what does X mean?" or give a dictionary definition.
-- The prompt should be evocative and specific enough that a learner who knows the word will immediately recognise it, but not so obvious that anyone could guess.
-- Format: "What word describes [scenario/feeling/situation]?"
-
-Output format for each quiz:
-{
-  "quiz_type": "fill_blank" | "typing",
-  "question": "...",
-  "choices": [],
-  "answer": "..."
-}
-The answer is the target word itself.`
+}`
 
 func buildUserPromptQuiz(word, context string) string {
 	if context == "" {

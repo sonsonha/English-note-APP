@@ -63,12 +63,12 @@ func (w *AIRetryWorker) processJob(ctx context.Context, job domain.AIPendingJob)
 	switch job.JobType {
 	case domain.AIJobTypeExplainWord:
 		processErr = w.processExplainWord(ctx, job)
-	case domain.AIJobTypeInitialQuizzes:
-		processErr = w.processInitialQuizzes(ctx, job)
-	case domain.AIJobTypeAdvancedQuizzes:
-		processErr = w.processAdvancedQuizzes(ctx, job)
+	case domain.AIJobTypeGenerateQuizzes:
+		processErr = w.processGenerateQuizzes(ctx, job)
 	case domain.AIJobTypeBackfillVIMeaning:
 		processErr = w.processBackfillVIMeaning(ctx, job)
+	case domain.AIJobTypeBackfillTopic:
+		processErr = w.processBackfillTopic(ctx, job)
 	default:
 		log.Printf("[WARN] AIRetryWorker: unknown job type %q for job %s, skipping", job.JobType, job.ID)
 		_ = w.jobRepo.MarkDone(ctx, job.ID)
@@ -99,6 +99,9 @@ func (w *AIRetryWorker) processExplainWord(ctx context.Context, job domain.AIPen
 		VIMeaning:    &exp.VIMeaning,
 		GeneratedAt:  time.Now(),
 	}
+	if exp.Topic != "" {
+		aiData.Topic = &exp.Topic
+	}
 	return w.wordRepo.StoreAIData(ctx, job.WordID, aiData)
 }
 
@@ -110,23 +113,19 @@ func (w *AIRetryWorker) processBackfillVIMeaning(ctx context.Context, job domain
 	return w.wordRepo.UpdateVIMeaning(ctx, job.WordID, exp.VIMeaning)
 }
 
-func (w *AIRetryWorker) processInitialQuizzes(ctx context.Context, job domain.AIPendingJob) error {
-	quizzes, err := w.aiSvc.GenerateInitialQuizzes(job.WordText, job.WordContext)
+func (w *AIRetryWorker) processBackfillTopic(ctx context.Context, job domain.AIPendingJob) error {
+	exp, err := w.aiSvc.ExplainWord(job.WordText, job.WordContext)
 	if err != nil {
 		return err
 	}
-	return w.storeQuizzes(ctx, job.WordID, quizzes)
-}
-
-func (w *AIRetryWorker) processAdvancedQuizzes(ctx context.Context, job domain.AIPendingJob) error {
-	exists, err := w.quizRepo.HasAdvancedQuizzes(ctx, job.WordID)
-	if err != nil {
-		return err
-	}
-	if exists {
+	if exp.Topic == "" {
 		return nil
 	}
-	quizzes, err := w.aiSvc.GenerateAdvancedQuizzes(job.WordText, job.WordContext)
+	return w.wordRepo.UpdateTopic(ctx, job.WordID, exp.Topic)
+}
+
+func (w *AIRetryWorker) processGenerateQuizzes(ctx context.Context, job domain.AIPendingJob) error {
+	quizzes, err := w.aiSvc.GenerateAllQuizzes(job.WordText, job.WordContext)
 	if err != nil {
 		return err
 	}

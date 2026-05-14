@@ -18,12 +18,8 @@ func (s *AIService) ExplainWord(word, context string) (*domain.AIExplanation, er
 	return ExplainWordSafe(s.client, word, context)
 }
 
-func (s *AIService) GenerateInitialQuizzes(word, context string) ([]domain.AIQuiz, error) {
-	return GenerateInitialQuizzesSafe(s.client, word, context)
-}
-
-func (s *AIService) GenerateAdvancedQuizzes(word, context string) ([]domain.AIQuiz, error) {
-	return GenerateAdvancedQuizzesSafe(s.client, word, context)
+func (s *AIService) GenerateAllQuizzes(word, context string) ([]domain.AIQuiz, error) {
+	return GenerateAllQuizzesSafe(s.client, word, context)
 }
 
 var _ domain.AIService = (*AIService)(nil)

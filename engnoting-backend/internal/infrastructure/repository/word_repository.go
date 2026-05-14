@@ -56,9 +56,9 @@ func isPgForeignKeyViolation(err error) bool {
 // Create creates a new word
 func (r *WordRepository) Create(ctx context.Context, word *domain.Word) error {
 	_, err := r.db.ExecContext(ctx, `
-		INSERT INTO words (id, user_id, text, context, confidence, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, word.ID, word.UserID, word.Text, word.Context, word.Confidence, word.CreatedAt, word.UpdatedAt)
+		INSERT INTO words (id, user_id, text, context, source, confidence, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`, word.ID, word.UserID, word.Text, word.Context, word.Source, word.Confidence, word.CreatedAt, word.UpdatedAt)
 	if err != nil {
 		if isPgUniqueViolation(err) {
 			return domain.ErrWordAlreadyExists
@@ -218,6 +218,37 @@ func (r *WordRepository) ListByTopic(ctx context.Context, userID, topic string, 
 	return scanWords(rows)
 }
 
+// ListBySource retrieves words saved from a specific page URL
+func (r *WordRepository) ListBySource(ctx context.Context, userID, source string) ([]*domain.Word, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT
+			w.id,
+			w.user_id,
+			w.text,
+			w.context,
+			w.source,
+			w.confidence,
+			w.created_at,
+			w.updated_at,
+			ai.definition,
+			ai.example_good,
+			ai.pos,
+			ai.cefr_level,
+			ai.vi_meaning,
+			ai.topic
+		FROM words w
+		LEFT JOIN word_ai_data ai ON ai.word_id = w.id
+		WHERE w.user_id = $1 AND w.source = $2
+		ORDER BY w.created_at DESC
+	`, userID, source)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanWords(rows)
+}
+
 // GetTopics returns distinct topics with word counts for a user
 func (r *WordRepository) GetTopics(ctx context.Context, userID string) ([]domain.TopicSummary, error) {
 	rows, err := r.db.QueryContext(ctx, `
@@ -325,6 +356,15 @@ func (r *WordRepository) UpdateVIMeaning(ctx context.Context, wordID, viMeaning 
 	return err
 }
 
+// UpdateTopic updates only the topic field for an existing ai_data row.
+func (r *WordRepository) UpdateTopic(ctx context.Context, wordID, topic string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE word_ai_data SET topic = $1 WHERE word_id = $2 AND topic IS NULL`,
+		topic, wordID,
+	)
+	return err
+}
+
 // ListMissingVIMeaning returns words that have an ai_data row but no vi_meaning yet.
 func (r *WordRepository) ListMissingVIMeaning(ctx context.Context, limit int) ([]*domain.Word, error) {
 	rows, err := r.db.QueryContext(ctx, `
@@ -332,6 +372,22 @@ func (r *WordRepository) ListMissingVIMeaning(ctx context.Context, limit int) ([
 		FROM words w
 		JOIN word_ai_data ai ON ai.word_id = w.id
 		WHERE ai.vi_meaning IS NULL
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanWordStubs(rows)
+}
+
+// ListMissingTopic returns words that have an ai_data row but no topic yet.
+func (r *WordRepository) ListMissingTopic(ctx context.Context, limit int) ([]*domain.Word, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT w.id, w.user_id, w.text, COALESCE(w.context, '')
+		FROM words w
+		JOIN word_ai_data ai ON ai.word_id = w.id
+		WHERE ai.topic IS NULL
 		LIMIT $1
 	`, limit)
 	if err != nil {

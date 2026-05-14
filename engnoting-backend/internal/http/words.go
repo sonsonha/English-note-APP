@@ -14,6 +14,7 @@ import (
 type CreateWordRequest struct {
 	Text    string `json:"text"`
 	Context string `json:"context"`
+	Source  string `json:"source"`
 }
 
 type CreateWordResponse struct {
@@ -41,6 +42,7 @@ type RegenerateWordResponse struct {
 type BackfillAIDataResponse struct {
 	EnqueuedVIMeaning int `json:"enqueued_vi_meaning"`
 	EnqueuedQuizzes   int `json:"enqueued_quizzes"`
+	EnqueuedTopics    int `json:"enqueued_topics"`
 }
 
 func (h *Handler) BackfillAIData(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +55,7 @@ func (h *Handler) BackfillAIData(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, BackfillAIDataResponse{
 		EnqueuedVIMeaning: out.EnqueuedVIMeaning,
 		EnqueuedQuizzes:   out.EnqueuedQuizzes,
+		EnqueuedTopics:    out.EnqueuedTopics,
 	})
 }
 
@@ -119,6 +122,7 @@ func (h *Handler) CreateWord(w http.ResponseWriter, r *http.Request) {
 		UserID:  userID,
 		Text:    req.Text,
 		Context: req.Context,
+		Source:  req.Source,
 	}
 
 	output, err := h.wordUseCase.CreateWord(ctx, input)
@@ -320,5 +324,51 @@ func (h *Handler) ListWords(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, ListWordsResponse{
 		Words: words,
 		Total: output.Total,
+	})
+}
+
+func (h *Handler) GetWordsBySource(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := mustUserIDFromContext(ctx)
+
+	sourceURL := r.URL.Query().Get("url")
+	if sourceURL == "" {
+		writeError(w, http.StatusBadRequest, "url query parameter is required")
+		return
+	}
+
+	output, err := h.wordUseCase.GetWordsBySource(ctx, usecase.GetWordsBySourceInput{
+		UserID: userID,
+		Source: sourceURL,
+	})
+	if err != nil {
+		h.logger.Error("failed to get words by source", "err", err)
+		writeError(w, http.StatusInternalServerError, "failed to get words")
+		return
+	}
+
+	words := make([]WordResponse, len(output.Words))
+	for i, word := range output.Words {
+		words[i] = WordResponse{
+			ID:         word.ID,
+			Text:       word.Text,
+			Context:    word.Context,
+			Source:     word.Source,
+			Confidence: word.Confidence,
+			CreatedAt:  word.CreatedAt.Format(time.RFC3339),
+		}
+		if word.AIData != nil {
+			words[i].Definition = &word.AIData.Definition
+			words[i].ExampleGood = &word.AIData.ExampleGood
+			words[i].PartOfSpeech = word.AIData.PartOfSpeech
+			words[i].CEFRLevel = word.AIData.CEFRLevel
+			words[i].VIMeaning = word.AIData.VIMeaning
+			words[i].Topic = word.AIData.Topic
+		}
+	}
+
+	writeJSON(w, http.StatusOK, ListWordsResponse{
+		Words: words,
+		Total: len(words),
 	})
 }

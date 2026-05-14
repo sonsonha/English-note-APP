@@ -55,10 +55,13 @@ type WordRepository interface {
 	GetByID(ctx context.Context, wordID, userID string) (*Word, error)
 	List(ctx context.Context, userID string, limit, offset int) ([]*Word, error)
 	ListByTopic(ctx context.Context, userID, topic string, limit, offset int) ([]*Word, error)
+	ListBySource(ctx context.Context, userID, source string) ([]*Word, error)
 	Count(ctx context.Context, userID string) (int, error)
 	StoreAIData(ctx context.Context, wordID string, aiData *WordAIData) error
 	UpdateVIMeaning(ctx context.Context, wordID, viMeaning string) error
+	UpdateTopic(ctx context.Context, wordID, topic string) error
 	ListMissingVIMeaning(ctx context.Context, limit int) ([]*Word, error)
+	ListMissingTopic(ctx context.Context, limit int) ([]*Word, error)
 	ListMissingQuizzes(ctx context.Context, limit int) ([]*Word, error)
 	GetTopics(ctx context.Context, userID string) ([]TopicSummary, error)
 }

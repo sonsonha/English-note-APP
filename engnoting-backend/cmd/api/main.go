@@ -81,7 +81,7 @@ func main() {
 
 	// Use case layer
 	wordUseCase := usecase.NewWordUseCase(wordRepo, aiService, vocabDailyStatsRepo, wordQuizRepo, aiPendingJobRepo)
-	reviewUseCase := usecase.NewReviewUseCase(reviewRepo, wordRepo, vocabDailyStatsRepo, wordQuizRepo, aiService, aiPendingJobRepo)
+	reviewUseCase := usecase.NewReviewUseCase(reviewRepo, wordRepo, vocabDailyStatsRepo)
 
 	aiWorker := worker.NewAIRetryWorker(aiPendingJobRepo, aiService, wordQuizRepo, wordRepo, 2*time.Minute)
 	go aiWorker.Start(appCtx)

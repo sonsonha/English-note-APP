@@ -34,6 +34,7 @@ func NewRouter(handler *Handler, jwtService *auth.JwtService) http.Handler {
 		r.Put("/words/{id}", handler.UpdateWord)
 		r.Put("/ai-words/{id}", handler.RegenerateWord)
 		r.Get("/words", handler.ListWords)
+		r.Get("/words/by-source", handler.GetWordsBySource)
 		r.Get("/words/{id}", handler.GetWord)
 		r.Get("/words/{id}/quizzes", handler.GetQuizzesByWordID)
 

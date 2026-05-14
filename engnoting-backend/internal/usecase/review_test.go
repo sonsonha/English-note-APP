@@ -75,7 +75,7 @@ func TestReviewUseCase_SubmitReview(t *testing.T) {
 				return nil
 			},
 		}
-		uc := NewReviewUseCase(reviewRepo, wordRepo, &mockStatsRepo{}, &mockQuizRepo{}, &mockAIService{}, &mockJobRepo{})
+		uc := NewReviewUseCase(reviewRepo, wordRepo, &mockStatsRepo{})
 
 		out, err := uc.SubmitReview(ctx, SubmitReviewInput{
 			UserID:     "user-id",
@@ -99,7 +99,7 @@ func TestReviewUseCase_SubmitReview(t *testing.T) {
 				return nil, domain.ErrWordNotFound
 			},
 		}
-		uc := NewReviewUseCase(&mockReviewRepo{}, wordRepo, &mockStatsRepo{}, &mockQuizRepo{}, &mockAIService{}, &mockJobRepo{})
+		uc := NewReviewUseCase(&mockReviewRepo{}, wordRepo, &mockStatsRepo{})
 
 		_, err := uc.SubmitReview(ctx, SubmitReviewInput{
 			UserID: "user-id", WordID: "missing", Result: true, ReviewType: "mcq",
@@ -128,7 +128,7 @@ func TestReviewUseCase_SubmitReview(t *testing.T) {
 				return createErr
 			},
 		}
-		uc := NewReviewUseCase(reviewRepo, wordRepo, &mockStatsRepo{}, &mockQuizRepo{}, &mockAIService{}, &mockJobRepo{})
+		uc := NewReviewUseCase(reviewRepo, wordRepo, &mockStatsRepo{})
 
 		_, err := uc.SubmitReview(ctx, SubmitReviewInput{
 			UserID: "user-id", WordID: "word-id", Result: false, ReviewType: "typing",
@@ -151,7 +151,7 @@ func TestReviewUseCase_SubmitReview(t *testing.T) {
 				return nil
 			},
 		}
-		uc := NewReviewUseCase(reviewRepo, wordRepo, &mockStatsRepo{}, &mockQuizRepo{}, &mockAIService{}, &mockJobRepo{})
+		uc := NewReviewUseCase(reviewRepo, wordRepo, &mockStatsRepo{})
 
 		_, err := uc.SubmitReview(ctx, SubmitReviewInput{
 			UserID:     "user-id",
@@ -189,7 +189,7 @@ func TestReviewUseCase_SubmitReview(t *testing.T) {
 				return nil, repoErr
 			},
 		}
-		uc := NewReviewUseCase(&mockReviewRepo{}, wordRepo, &mockStatsRepo{}, &mockQuizRepo{}, &mockAIService{}, &mockJobRepo{})
+		uc := NewReviewUseCase(&mockReviewRepo{}, wordRepo, &mockStatsRepo{})
 
 		_, err := uc.SubmitReview(ctx, SubmitReviewInput{
 			UserID: "user-id", WordID: "word-id", Result: true, ReviewType: "mcq",
