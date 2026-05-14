@@ -10,6 +10,7 @@ import Results from './screens/Results.jsx';
 import Calendar from './screens/Calendar.jsx';
 import Settings from './screens/Settings.jsx';
 import Topics from './screens/Topics.jsx';
+import Admin from './screens/Admin.jsx';
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -106,6 +107,9 @@ export default function App() {
       break;
     case 'settings':
       content = <Settings />;
+      break;
+    case 'admin':
+      content = <Admin setScreen={setScreen} />;
       break;
     default:
       content = (

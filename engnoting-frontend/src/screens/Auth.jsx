@@ -1,14 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import Icon from '../components/Icons.jsx';
 
 export default function Auth() {
-  const { login, register } = useAuth();
+  const { login, register, googleLogin } = useAuth();
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const googleBtnRef = useRef(null);
+
+  useEffect(() => {
+    const initGoogle = () => {
+      if (!window.google?.accounts?.id || !googleBtnRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          setError('');
+          setLoading(true);
+          try {
+            await googleLogin(response.credential);
+          } catch (err) {
+            setError(err.message || 'Google sign-in failed.');
+          } finally {
+            setLoading(false);
+          }
+        },
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        width: 360,
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      initGoogle();
+    } else {
+      const timer = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          clearInterval(timer);
+          initGoogle();
+        }
+      }, 200);
+      return () => clearInterval(timer);
+    }
+  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -129,6 +168,14 @@ export default function Auth() {
               </>
             )}
           </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+            <span className="muted" style={{ fontSize: 12 }}>or</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          </div>
+
+          <div ref={googleBtnRef} style={{ display: 'flex', justifyContent: 'center' }} />
         </form>
       </div>
     </div>

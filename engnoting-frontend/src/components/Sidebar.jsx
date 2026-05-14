@@ -42,6 +42,9 @@ export default function Sidebar({ screen, setScreen, wordCount }) {
       <div className="nav-section">
         <div className="nav-label">Account</div>
         <NavItem id="settings" screen={screen} setScreen={setScreen} icon="settings" label="Settings" />
+        {user?.isAdmin && (
+          <NavItem id="admin" screen={screen} setScreen={setScreen} icon="user" label="Admin" />
+        )}
       </div>
 
       <div className="nav-foot">

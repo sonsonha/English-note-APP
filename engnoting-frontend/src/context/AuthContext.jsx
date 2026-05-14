@@ -9,19 +9,21 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     authApi.refresh()
-      .then(data => { if (data) setUser({ email: '' }); })
+      .then(data => {
+        if (data) setUser({ email: '', isAdmin: data.is_admin ?? false });
+      })
       .finally(() => setLoading(false));
   }, []);
 
   const login = async (email, password) => {
-    await authApi.login(email, password);
-    setUser({ email });
+    const data = await authApi.login(email, password);
+    setUser({ email, isAdmin: data.is_admin ?? false });
   };
 
   const register = async (email, password) => {
     await authApi.register(email, password);
-    await authApi.login(email, password);
-    setUser({ email });
+    const data = await authApi.login(email, password);
+    setUser({ email, isAdmin: data.is_admin ?? false });
   };
 
   const logout = async () => {
@@ -29,8 +31,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const googleLogin = async (idToken) => {
+    const data = await authApi.googleLogin(idToken);
+    setUser({ email: '', isAdmin: data.is_admin ?? false });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, googleLogin }}>
       {children}
     </AuthContext.Provider>
   );

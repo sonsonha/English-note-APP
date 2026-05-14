@@ -38,3 +38,12 @@ export async function logout() {
     clearToken();
   }
 }
+
+export async function googleLogin(idToken) {
+  const data = await apiJSON('/api/v1/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ id_token: idToken }),
+  });
+  setToken(data.access_token);
+  return data;
+}

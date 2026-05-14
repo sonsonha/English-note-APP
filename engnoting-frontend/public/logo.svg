@@ -1,27 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#5254f7"/>
-      <stop offset="100%" stop-color="#9333ea"/>
+    <linearGradient id="bg" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
     </linearGradient>
-    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    <linearGradient id="dolph" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#bae6fd"/>
     </linearGradient>
+    <radialGradient id="glow" cx="80%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
-  <!-- Speech bubble with centered bookmark V-tail -->
-  <path
-    d="M24,8 H76 Q92,8 92,24 V52 Q92,68 76,68 H60 L50,86 L40,68 H24 Q8,68 8,52 V24 Q8,8 24,8 Z"
-    fill="url(#g)"/>
+  <rect width="128" height="128" rx="22" fill="url(#bg)"/>
+  <rect width="128" height="128" rx="22" fill="url(#glow)"/>
 
-  <!-- Subtle top shine -->
-  <path
-    d="M24,8 H76 Q92,8 92,24 V38 H8 V24 Q8,8 24,8 Z"
-    fill="url(#shine)"/>
+  <path d="M 6,116 Q 36,110 64,116 Q 92,122 122,116"
+        stroke="white" stroke-width="2" fill="none" opacity="0.18" stroke-linecap="round"/>
 
-  <!-- Three vocabulary word lines -->
-  <rect x="19" y="21" width="62" height="7.5" rx="3.75" fill="white" opacity="0.93"/>
-  <rect x="19" y="36" width="46" height="7.5" rx="3.75" fill="white" opacity="0.93"/>
-  <rect x="19" y="51" width="54" height="7.5" rx="3.75" fill="white" opacity="0.93"/>
+  <!-- Dolphin body -->
+  <path d="
+    M 116,30
+    C 106,18 90,18 74,30
+    C 60,40 46,54 34,68
+    C 24,80 16,92 14,100
+    C 16,108 26,106 38,96
+    C 52,84 66,72 80,60
+    C 94,48 108,36 116,34
+    C 118,32 118,28 116,30
+    Z
+  " fill="url(#dolph)"/>
+
+  <path d="
+    M 38,96
+    C 52,84 66,72 80,60
+    C 94,48 108,36 116,34
+    C 110,42 100,50 88,60
+    C 74,70 60,82 48,92
+    C 44,95 40,97 38,96
+    Z
+  " fill="white" opacity="0.28"/>
+
+  <path d="M 80,46 C 80,30 88,14 92,20 C 90,30 86,40 82,48 Z" fill="url(#dolph)"/>
+  <path d="M 76,62 C 86,70 88,82 78,88 C 68,78 64,66 76,62 Z" fill="white" opacity="0.7"/>
+  <path d="M 14,100 C 8,92 2,80 6,70 C 12,78 16,90 18,100 Z" fill="url(#dolph)"/>
+  <path d="M 14,100 C 6,108 2,120 8,126 C 16,118 18,106 18,100 Z" fill="url(#dolph)" opacity="0.85"/>
+
+  <circle cx="104" cy="26" r="4" fill="#1e3a8a"/>
+  <circle cx="106" cy="24" r="1.5" fill="white" opacity="0.9"/>
+  <path d="M 116,34 Q 122,40 118,47"
+        stroke="#1e3a8a" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+
+  <circle cx="122" cy="18" r="3"   fill="white" opacity="0.4"/>
+  <circle cx="126" cy="30" r="2"   fill="white" opacity="0.28"/>
+  <circle cx="118" cy="10" r="1.8" fill="white" opacity="0.25"/>
 </svg>
