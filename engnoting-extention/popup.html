@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EngNoting</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      color: #1f2937;
+      background: #fff;
+    }
+
+    .header {
+      background: #4f46e5;
+      color: #fff;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+
+    .header-title {
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.02em;
+    }
+
+    .body {
+      padding: 16px;
+    }
+
+    /* ── Login view ── */
+    #login-view label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    #login-view input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      font-size: 14px;
+      color: #1f2937;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 10px;
+    }
+
+    #login-view input:focus {
+      border-color: #4f46e5;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 9px;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-primary:hover { background: #4338ca; }
+    .btn-primary:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    #login-error {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #dc2626;
+      min-height: 16px;
+      text-align: center;
+    }
+
+    /* ── Logged-in view ── */
+    #loggedin-view { display: none; }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #f0fdf4;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #4f46e5;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .user-email {
+      font-size: 13px;
+      color: #374151;
+      word-break: break-all;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      flex-shrink: 0;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.6;
+      padding: 10px 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+
+    .hint strong { color: #4f46e5; }
+
+    .btn-secondary {
+      width: 100%;
+      padding: 8px;
+      background: #fff;
+      color: #6b7280;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-secondary:hover { background: #f9fafb; color: #374151; }
+
+    .api-section {
+      margin-top: 12px;
+      border-top: 1px solid #f3f4f6;
+      padding-top: 12px;
+    }
+
+    .api-section label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ca3af;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .api-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .api-row input {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #374151;
+      outline: none;
+    }
+
+    .api-row input:focus { border-color: #4f46e5; }
+
+    .api-row button {
+      padding: 6px 10px;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #374151;
+    }
+
+    .api-row button:hover { background: #e5e7eb; }
+
+    #api-saved {
+      font-size: 11px;
+      color: #059669;
+      margin-top: 4px;
+      min-height: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img class="header-icon" src="icons/icon48.png" alt="EngNoting" />
+    <span class="header-title">EngNoting</span>
+  </div>
+
+  <div class="body">
+    <!-- Login view -->
+    <div id="login-view">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
+      <button class="btn-primary" id="login-btn">Log in</button>
+      <div id="login-error"></div>
+    </div>
+
+    <!-- Logged-in view -->
+    <div id="loggedin-view">
+      <div class="user-info">
+        <div class="status-dot"></div>
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-email" id="user-email"></div>
+      </div>
+      <div class="hint">
+        <strong>Highlight</strong> any text on the page, click the <strong>E</strong> button that appears, then click a word to save it.
+      </div>
+      <button class="btn-secondary" id="logout-btn">Log out</button>
+
+      <div class="api-section">
+        <label>API Server</label>
+        <div class="api-row">
+          <input type="text" id="api-base-input" placeholder="http://localhost:8080" />
+          <button id="api-save-btn">Save</button>
+        </div>
+        <div id="api-saved"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
