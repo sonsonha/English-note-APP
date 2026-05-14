@@ -409,6 +409,31 @@ func (r *WordRepository) ListMissingTopic(ctx context.Context, limit int) ([]*do
 	return scanWordStubs(rows)
 }
 
+// UpdatePronunciation updates only the pronunciation field for an existing ai_data row.
+func (r *WordRepository) UpdatePronunciation(ctx context.Context, wordID, pronunciation string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE word_ai_data SET pronunciation = $1 WHERE word_id = $2 AND pronunciation IS NULL`,
+		pronunciation, wordID,
+	)
+	return err
+}
+
+// ListMissingPronunciation returns words that have an ai_data row but no pronunciation yet.
+func (r *WordRepository) ListMissingPronunciation(ctx context.Context, limit int) ([]*domain.Word, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT w.id, w.user_id, w.text, COALESCE(w.context, '')
+		FROM words w
+		JOIN word_ai_data ai ON ai.word_id = w.id
+		WHERE ai.pronunciation IS NULL
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanWordStubs(rows)
+}
+
 // ListMissingQuizzes returns words that have no quiz rows at all.
 func (r *WordRepository) ListMissingQuizzes(ctx context.Context, limit int) ([]*domain.Word, error) {
 	rows, err := r.db.QueryContext(ctx, `

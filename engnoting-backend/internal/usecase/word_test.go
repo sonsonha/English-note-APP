@@ -78,6 +78,12 @@ func (m *mockWordRepo) ListMissingTopic(_ context.Context, _ int) ([]*domain.Wor
 	return nil, nil
 }
 
+func (m *mockWordRepo) UpdatePronunciation(_ context.Context, _, _ string) error { return nil }
+
+func (m *mockWordRepo) ListMissingPronunciation(_ context.Context, _ int) ([]*domain.Word, error) {
+	return nil, nil
+}
+
 func (m *mockWordRepo) ListByTopic(_ context.Context, _, _ string, _, _ int) ([]*domain.Word, error) {
 	return nil, nil
 }

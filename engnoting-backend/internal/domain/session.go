@@ -11,6 +11,7 @@ type SessionItem struct {
 	WordText      string
 	ReviewType    string
 	PriorityScore float64
+	AccuracyRate  float64
 	Reason        string
 	Quiz          *WordQuiz // nil if not yet generated
 }

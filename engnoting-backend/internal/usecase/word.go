@@ -193,9 +193,10 @@ func (uc *WordUseCase) RegenerateWord(ctx context.Context, input RegenerateWordI
 
 // BackfillAIDataOutput holds counts of jobs enqueued during backfill.
 type BackfillAIDataOutput struct {
-	EnqueuedVIMeaning int
-	EnqueuedQuizzes   int
-	EnqueuedTopics    int
+	EnqueuedVIMeaning    int
+	EnqueuedQuizzes      int
+	EnqueuedTopics       int
+	EnqueuedPronunciation int
 }
 
 // BackfillAIData enqueues AI jobs for words missing vi_meaning, quizzes, or topic.
@@ -249,6 +250,22 @@ func (uc *WordUseCase) BackfillAIData(ctx context.Context) (*BackfillAIDataOutpu
 			continue
 		}
 		out.EnqueuedTopics++
+	}
+
+	pronWords, err := uc.wordRepo.ListMissingPronunciation(ctx, batchSize)
+	if err != nil {
+		return nil, err
+	}
+	for _, w := range pronWords {
+		wordCtx := ""
+		if w.Context != nil {
+			wordCtx = *w.Context
+		}
+		if enqErr := uc.jobRepo.Enqueue(ctx, w.ID, w.Text, wordCtx, domain.AIJobTypeBackfillPronunciation); enqErr != nil {
+			log.Printf("[WARN] BackfillAIData: failed to enqueue pronunciation job for word %q: %v", w.Text, enqErr)
+			continue
+		}
+		out.EnqueuedPronunciation++
 	}
 
 	return out, nil

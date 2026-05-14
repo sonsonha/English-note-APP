@@ -64,6 +64,8 @@ type WordRepository interface {
 	ListMissingVIMeaning(ctx context.Context, limit int) ([]*Word, error)
 	ListMissingTopic(ctx context.Context, limit int) ([]*Word, error)
 	ListMissingQuizzes(ctx context.Context, limit int) ([]*Word, error)
+	ListMissingPronunciation(ctx context.Context, limit int) ([]*Word, error)
+	UpdatePronunciation(ctx context.Context, wordID, pronunciation string) error
 	GetTopics(ctx context.Context, userID string) ([]TopicSummary, error)
 }
 

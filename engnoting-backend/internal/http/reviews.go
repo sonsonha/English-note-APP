@@ -24,10 +24,18 @@ type SubmitReviewResponse struct {
 }
 
 var validReviewTypes = map[string]bool{
+	// legacy types
 	"mcq":        true,
 	"match":      true,
 	"typing":     true,
 	"fill_blank": true,
+	// current types
+	"word_meaning_mcq": true,
+	"context_fill_mcq": true,
+	"phrase_match":      true,
+	"reverse_mcq":       true,
+	"recall_typing":     true,
+	"context_typing":    true,
 }
 
 func (h *Handler) SubmitReview(w http.ResponseWriter, r *http.Request) {
@@ -83,6 +91,7 @@ type SessionItem struct {
 	WordText      string        `json:"word_text"`
 	ReviewType    string        `json:"review_type"`
 	PriorityScore float64       `json:"priority_score"`
+	AccuracyRate  float64       `json:"accuracy_rate"`
 	Reason        string        `json:"reason"`
 	Quiz          *QuizResponse `json:"quiz"` // null means quiz not yet generated
 }
@@ -110,6 +119,7 @@ func domainItemToSessionItem(item domain.SessionItem) SessionItem {
 		WordText:      item.WordText,
 		ReviewType:    item.ReviewType,
 		PriorityScore: item.PriorityScore,
+		AccuracyRate:  item.AccuracyRate,
 		Reason:        item.Reason,
 		Quiz:          domainQuizToResponse(item.Quiz),
 	}

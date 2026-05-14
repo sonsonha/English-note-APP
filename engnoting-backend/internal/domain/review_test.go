@@ -2,87 +2,52 @@ package domain
 
 import "testing"
 
-func TestSelectType(t *testing.T) {
-	tests := []struct {
-		name     string
-		ctx      ReviewContext
-		wantType string
-	}{
-		{
-			name:     "zero TotalReviews returns word_meaning_mcq",
-			ctx:      ReviewContext{TotalReviews: 0, AccuracyRate: 0.9},
-			wantType: QuizTypeWordMeaningMCQ,
-		},
-		{
-			name:     "AccuracyRate below 0.5 returns word_meaning_mcq",
-			ctx:      ReviewContext{TotalReviews: 10, AccuracyRate: 0.49},
-			wantType: QuizTypeWordMeaningMCQ,
-		},
-		{
-			name:     "AccuracyRate exactly 0.0 returns word_meaning_mcq",
-			ctx:      ReviewContext{TotalReviews: 5, AccuracyRate: 0.0},
-			wantType: QuizTypeWordMeaningMCQ,
-		},
-		{
-			name:     "AccuracyRate 0.50 returns context_fill_mcq",
-			ctx:      ReviewContext{TotalReviews: 5, AccuracyRate: 0.50},
-			wantType: QuizTypeContextFillMCQ,
-		},
-		{
-			name:     "AccuracyRate 0.60 returns context_fill_mcq",
-			ctx:      ReviewContext{TotalReviews: 5, AccuracyRate: 0.60},
-			wantType: QuizTypeContextFillMCQ,
-		},
-		{
-			name:     "AccuracyRate 0.62 returns phrase_match",
-			ctx:      ReviewContext{TotalReviews: 5, AccuracyRate: 0.62},
-			wantType: QuizTypePhraseMatch,
-		},
-		{
-			name:     "AccuracyRate 0.70 returns phrase_match",
-			ctx:      ReviewContext{TotalReviews: 5, AccuracyRate: 0.70},
-			wantType: QuizTypePhraseMatch,
-		},
-		{
-			name:     "AccuracyRate 0.72 returns reverse_mcq",
-			ctx:      ReviewContext{TotalReviews: 5, AccuracyRate: 0.72},
-			wantType: QuizTypeReverseMCQ,
-		},
-		{
-			name:     "AccuracyRate 0.80 returns reverse_mcq",
-			ctx:      ReviewContext{TotalReviews: 5, AccuracyRate: 0.80},
-			wantType: QuizTypeReverseMCQ,
-		},
-		{
-			name:     "AccuracyRate 0.82 returns recall_typing",
-			ctx:      ReviewContext{TotalReviews: 5, AccuracyRate: 0.82},
-			wantType: QuizTypeRecallTyping,
-		},
-		{
-			name:     "AccuracyRate 0.90 returns recall_typing (boundary, exclusive)",
-			ctx:      ReviewContext{TotalReviews: 5, AccuracyRate: 0.90},
-			wantType: QuizTypeRecallTyping,
-		},
-		{
-			name:     "AccuracyRate 0.92 returns context_typing",
-			ctx:      ReviewContext{TotalReviews: 10, AccuracyRate: 0.92},
-			wantType: QuizTypeContextTyping,
-		},
-		{
-			name:     "AccuracyRate 1.0 returns context_typing",
-			ctx:      ReviewContext{TotalReviews: 100, AccuracyRate: 1.0},
-			wantType: QuizTypeContextTyping,
-		},
-	}
+var mcqPool = map[string]bool{
+	QuizTypeWordMeaningMCQ: true,
+	QuizTypeContextFillMCQ: true,
+	QuizTypePhraseMatch:    true,
+	QuizTypeReverseMCQ:     true,
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := SelectType(tt.ctx)
-			if got != tt.wantType {
-				t.Errorf("SelectType() = %q, want %q", got, tt.wantType)
-			}
-		})
+var fullPool = map[string]bool{
+	QuizTypeWordMeaningMCQ: true,
+	QuizTypeContextFillMCQ: true,
+	QuizTypePhraseMatch:    true,
+	QuizTypeReverseMCQ:     true,
+	QuizTypeRecallTyping:   true,
+	QuizTypeContextTyping:  true,
+}
+
+// assertPool runs SelectType n times and verifies every result is in the allowed set.
+func assertPool(t *testing.T, ctx ReviewContext, allowed map[string]bool, n int) {
+	t.Helper()
+	for i := 0; i < n; i++ {
+		got := SelectType(ctx)
+		if !allowed[got] {
+			t.Errorf("SelectType() = %q, not in allowed pool", got)
+			return
+		}
 	}
+}
+
+func TestSelectType(t *testing.T) {
+	const runs = 100
+
+	t.Run("zero TotalReviews uses only MCQ pool", func(t *testing.T) {
+		assertPool(t, ReviewContext{TotalReviews: 0, AccuracyRate: 0.9}, mcqPool, runs)
+	})
+	t.Run("low accuracy uses only MCQ pool", func(t *testing.T) {
+		assertPool(t, ReviewContext{TotalReviews: 10, AccuracyRate: 0.49}, mcqPool, runs)
+	})
+	t.Run("accuracy below threshold uses only MCQ pool", func(t *testing.T) {
+		assertPool(t, ReviewContext{TotalReviews: 5, AccuracyRate: 0.81}, mcqPool, runs)
+	})
+	t.Run("accuracy at 0.82 unlocks full pool", func(t *testing.T) {
+		assertPool(t, ReviewContext{TotalReviews: 5, AccuracyRate: 0.82}, fullPool, runs)
+	})
+	t.Run("high accuracy uses full pool", func(t *testing.T) {
+		assertPool(t, ReviewContext{TotalReviews: 100, AccuracyRate: 1.0}, fullPool, runs)
+	})
 }
 
 func TestReason(t *testing.T) {

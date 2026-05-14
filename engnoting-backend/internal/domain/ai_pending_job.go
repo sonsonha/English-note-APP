@@ -8,8 +8,9 @@ import (
 const (
 	AIJobTypeExplainWord       = "explain_word"
 	AIJobTypeGenerateQuizzes   = "generate_quizzes"
-	AIJobTypeBackfillVIMeaning = "backfill_vi_meaning"
-	AIJobTypeBackfillTopic     = "backfill_topic"
+	AIJobTypeBackfillVIMeaning    = "backfill_vi_meaning"
+	AIJobTypeBackfillTopic        = "backfill_topic"
+	AIJobTypeBackfillPronunciation = "backfill_pronunciation"
 
 	AIJobStatusPending = "pending"
 	AIJobStatusDone    = "done"

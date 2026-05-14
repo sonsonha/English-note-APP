@@ -164,6 +164,7 @@ func (uc *SessionUseCase) makeSessionItem(ctx context.Context, item domain.Revie
 		WordID:        item.WordID,
 		ReviewType:    reviewType,
 		PriorityScore: item.PriorityScore,
+		AccuracyRate:  stats.AccuracyRate,
 		Reason:        item.Reason + ". " + domain.Reason(reviewCtx, reviewType),
 	}, true
 }

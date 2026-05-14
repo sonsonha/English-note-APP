@@ -40,9 +40,10 @@ type RegenerateWordResponse struct {
 }
 
 type BackfillAIDataResponse struct {
-	EnqueuedVIMeaning int `json:"enqueued_vi_meaning"`
-	EnqueuedQuizzes   int `json:"enqueued_quizzes"`
-	EnqueuedTopics    int `json:"enqueued_topics"`
+	EnqueuedVIMeaning    int `json:"enqueued_vi_meaning"`
+	EnqueuedQuizzes      int `json:"enqueued_quizzes"`
+	EnqueuedTopics       int `json:"enqueued_topics"`
+	EnqueuedPronunciation int `json:"enqueued_pronunciation"`
 }
 
 func (h *Handler) BackfillAIData(w http.ResponseWriter, r *http.Request) {
@@ -53,9 +54,10 @@ func (h *Handler) BackfillAIData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, BackfillAIDataResponse{
-		EnqueuedVIMeaning: out.EnqueuedVIMeaning,
-		EnqueuedQuizzes:   out.EnqueuedQuizzes,
-		EnqueuedTopics:    out.EnqueuedTopics,
+		EnqueuedVIMeaning:    out.EnqueuedVIMeaning,
+		EnqueuedQuizzes:      out.EnqueuedQuizzes,
+		EnqueuedTopics:       out.EnqueuedTopics,
+		EnqueuedPronunciation: out.EnqueuedPronunciation,
 	})
 }
 

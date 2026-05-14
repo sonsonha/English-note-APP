@@ -69,6 +69,8 @@ func (w *AIRetryWorker) processJob(ctx context.Context, job domain.AIPendingJob)
 		processErr = w.processBackfillVIMeaning(ctx, job)
 	case domain.AIJobTypeBackfillTopic:
 		processErr = w.processBackfillTopic(ctx, job)
+	case domain.AIJobTypeBackfillPronunciation:
+		processErr = w.processBackfillPronunciation(ctx, job)
 	default:
 		log.Printf("[WARN] AIRetryWorker: unknown job type %q for job %s, skipping", job.JobType, job.ID)
 		_ = w.jobRepo.MarkDone(ctx, job.ID)
@@ -102,6 +104,9 @@ func (w *AIRetryWorker) processExplainWord(ctx context.Context, job domain.AIPen
 	if exp.Topic != "" {
 		aiData.Topic = &exp.Topic
 	}
+	if exp.Pronunciation != "" {
+		aiData.Pronunciation = &exp.Pronunciation
+	}
 	return w.wordRepo.StoreAIData(ctx, job.WordID, aiData)
 }
 
@@ -122,6 +127,17 @@ func (w *AIRetryWorker) processBackfillTopic(ctx context.Context, job domain.AIP
 		return nil
 	}
 	return w.wordRepo.UpdateTopic(ctx, job.WordID, exp.Topic)
+}
+
+func (w *AIRetryWorker) processBackfillPronunciation(ctx context.Context, job domain.AIPendingJob) error {
+	exp, err := w.aiSvc.ExplainWord(job.WordText, job.WordContext)
+	if err != nil {
+		return err
+	}
+	if exp.Pronunciation == "" {
+		return nil
+	}
+	return w.wordRepo.UpdatePronunciation(ctx, job.WordID, exp.Pronunciation)
 }
 
 func (w *AIRetryWorker) processGenerateQuizzes(ctx context.Context, job domain.AIPendingJob) error {
